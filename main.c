@@ -30,18 +30,18 @@ void main1(){
 
 	while(1){
 		LED1_ON
-		delay(500);
+		delay_ms(500);
 		LED1_OFF
-		delay(500);
+		delay_ms(500);
 	}
 }
 
 void main2(){
 	while(1){
 		LED2_ON
-		delay(500);
+		delay_ms(500);
 		LED2_OFF
-		delay(500);
+		delay_ms(500);
 	}
 }
 

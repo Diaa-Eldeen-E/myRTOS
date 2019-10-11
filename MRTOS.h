@@ -10,10 +10,15 @@
 
 #include "handy.h"
 
+
 typedef struct {
 	void* sp;
 
 }OSThread;
+
+
+extern OSThread blinky1;
+extern OSThread blinky2;
 
 typedef void (*OSThreadHandler)();
 

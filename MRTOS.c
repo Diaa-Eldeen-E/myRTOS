@@ -14,33 +14,61 @@
 OSThread* volatile OS_curr;	//pointer to current thread
 OSThread* volatile OS_next;	//pointer to next thread
 
+//for making the systick interrupt inactive inside the pendSV handler
+uint32_t* SCB_ptr = (uint32_t*) 0xE000ED24;
 
-__asm(" .global         PendSV_Handler\n"
+
+
+//pop 8 registers (systick registers saved) from the stack
+__asm(
+		//the external global variables
+		" .text\n"
+		" .global		OS_curr\n"
+		".OS_currAddr:\n\t"
+		" .word			OS_curr\n"
+
+		" .global		OS_next\n"
+		".OS_nextAddr:\n\t"
+		" .word			OS_next\n"
+
+		" .global		SCB_ptr\n"
+		".SCB_ptrAddr:\n\t"
+		" .word			SCB_ptr\n"
+
+		//the function code
+		" .global         PendSV_Handler\n"
 		"PendSV_Handler:\n\t"
 		//disable interrupt
 		" CPSID         i\n\t"
+
+		//pop the saved SysTick registers
+		" pop		{r0-r3}\n\t"
+		" pop		{r0-r3}\n\t"
+		" pop		{r0,r1}\n\t"
+
 		//clearing the SysTick active interrupt
-		"ldr		r1, $C$CON5\n\t"
-		" ldr       r0, [r1, #0x20]\n\t"
+		" ldr		r1, .SCB_ptrAddr\n\t"	//$C$CON5
+		" ldr		r1, [r1]\n\t"	//dereferencing the pointer
+		" ldr       r0, [r1]\n\t"	//[r1, #0x20]
 		" bic        r0, r0, #0x800\n\t"
-		" str        r0, [r1, #0x20]\n\t"
+		" str        r0, [r1]\n\t"	//[r1, #0x20]
 		//if (OS_curr != (OSThread*)0 )	//in case it's the first call, so there will be no current thread yet
-		" ldr        r0,$C$CON4\n\t"
+		" ldr        r0, .OS_currAddr\n\t"	//$C$CON4
 		" ldr        r0, [r0]\n\t"
 		" cbz        r0,PendSV_restore\n\t"
 		//if statement body, saving the context of the previous thread
 		" push		{r4-r11}\n\t"
-		" ldr        r1,$C$CON4\n\t"
+		" ldr        r1, .OS_currAddr\n\t"
 		" ldr        r1, [r1]\n\t"
 		" str        sp, [r1]\n"
 
 		//restore the context of the next thread
 		"PendSV_restore:\n\t"
-		" ldr        r0,$C$CON3\n\t"
+		" ldr        r0, .OS_nextAddr\n\t"
 		" ldr        r0, [r0]\n\t"
 		" ldr        sp, [r0]\n\t"
-		" ldr        r0,$C$CON3\n\t"
-		" ldr        r1,$C$CON4\n\t"
+		" ldr        r0, .OS_nextAddr\n\t"
+		" ldr        r1, .OS_currAddr\n\t"
 		" ldr        r0, [r0]\n\t"
 		" str        r0, [r1]\n\t"
 		" pop			{r4-r11}\n\t"
@@ -52,6 +80,11 @@ __asm(" .global         PendSV_Handler\n"
 
 
 void OS_sched(){
+
+	if ( OS_curr == &blinky1)
+		OS_next = &blinky2;
+	else
+		OS_next = &blinky1;
 
 	if(OS_next != OS_curr) {
 		SCB->ICSR |= BIT28;
