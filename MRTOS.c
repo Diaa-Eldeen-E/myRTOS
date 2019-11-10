@@ -21,22 +21,51 @@ OSThread* volatile OS_next;	//pointer to next thread
 OSThread* OS_thread[32+1];
 uint8_t cThread;	//counts how many threads we started
 uint8_t iThread;	//index of the current working thread
+uint32_t OS_thread_rdy;
 
 
+OSThread idleThread;
+void idle_thread(){
+	while(1){
+		OS_onIdle();
+	}
+}
 
 
+//you don't need to disable interrupts for this function because
+//it is called from an ISR which cannot be preempted by a thread
+//since OS_delay is the only thread that could change the timeout variable so, no race conditions could happen
+void OS_tick(){
+	uint8_t i=0;
+	for(i=1; i<cThread; i++){
+		//if the timeout is higher than zero decrement it, if it reached 0 make it ready
+		if (OS_thread[i]->timeout > 0) {
+			--OS_thread[i]->timeout;
+			if (OS_thread[i]->timeout == 0) OS_thread_rdy |= ( 1U << (i-1) );
+		}
+	}
+}
+
+void OS_delay(uint32_t t){
+	__disable_irq();
+	if (OS_curr == OS_thread[0]) {
+		//error, the idle thread should never call OS_delay
+		while(1);
+	}
+	OS_thread[iThread]->timeout = t;
+	OS_thread_rdy &=~ (1<<iThread-1);
+	OS_sched();	//so the scheduler could switch the context away from that thread so it can be blocked
+	__enable_irq();
+}
 
 
 void OS_run(){
-	//OS_onStartup();	//the user should implement this function
+	//OS_onStartup();
 	//__disable irq();
 	//OS_sched();
 	//__enable_irq();
-
 	//the following code should never execute
 	//error and exit
-
-	//keeping it simple for now :
 	__enable_irq();
 	while(1){
 	}
@@ -45,6 +74,7 @@ void OS_run(){
 
 void SysTick_Handler(){
 	++sysTicks;
+	OS_tick();
 
 	__asm(" cpsid	 i");
 	OS_sched();
@@ -101,14 +131,18 @@ void PendSV_Handler(){
 
 void OS_sched(){
 
-	//round robin
-	if(iThread < cThread) {
-		OS_next = OS_thread[iThread++];
-	}
+	//round robin with idle thread (with OS_delay)
+	if (OS_thread_rdy == 0U)	iThread = 0;	//idle thread
 	else {
-		iThread = 0;
+		//see who is rdy and run it
+		do{
+			iThread++;
+			if (iThread == MAX_THREADS) iThread = 1;
+
+		}while( !(OS_thread_rdy & ( 1U <<(iThread - 1U) ) ) );
 	}
 
+	OS_next = OS_thread[iThread];
 
 	if(OS_next != OS_curr) {
 		SCB->ICSR |= BIT28;
@@ -116,13 +150,15 @@ void OS_sched(){
 
 }
 
-void OS_init(){
+void OS_init(void* stkSto, uint32_t stkSize){
+
+	OSThread_Start(&idleThread, &idle_thread, stkSto, stkSize);
 
 	SysTick->CTRL |= BIT1 | BIT0;	//enable timer and interrupt (4MHz clock)
 	SysTick->LOAD = 3999;	//1ms
 
 	SCB->SHP[10] = 0xE0;
-	__NVIC_SetPriority(SysTick_IRQn, 7);	//SysTick must have the lowest priorty
+	__NVIC_SetPriority(SysTick_IRQn, 6);	//SysTick must have the lowest priorty
 
 }
 
@@ -166,6 +202,8 @@ void OSThread_Start(
 
 
 
+	//exclude the first thread (idle thread)
+	if (cThread != 0)	OS_thread_rdy |= (1<<(cThread-1));
 
 	if (cThread < MAX_THREADS)	OS_thread[cThread++] = me;
 
