@@ -11,6 +11,7 @@
 #include "handy.h"
 
 
+
 typedef struct {
 	void* sp;
 
@@ -22,9 +23,11 @@ extern OSThread blinky2;
 
 typedef void (*OSThreadHandler)();
 
+
+void OS_run();
+
 //must be called when interrupts are disabled
 void OS_sched();
-
 void OS_init();
 void OSThread_Start(
 		OSThread* me,
