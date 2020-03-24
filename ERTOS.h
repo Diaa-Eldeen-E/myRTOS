@@ -10,8 +10,33 @@
 
 
 
+#include "ERTOS_config.h"
+#include "list.h"
+
+
+typedef void (*OSThreadHandler_t)();
 
 
 
+typedef struct {
+	uint32_t ui32ThreadID;
+
+	uint32_t* sp;
+
+	OSThreadHandler_t OSThreadHandler;
+
+	listItem_t* item;
+
+	uint32_t ui32TimeOut;
+
+	uint32_t ui32Priority;
+
+}OSThread_t;
+
+
+void OS_run();
+static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
+void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
+void OS_init();
 
 #endif /* ERTOS_H_ */

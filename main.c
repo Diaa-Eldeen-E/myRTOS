@@ -6,7 +6,7 @@
 
 #include "handy.h"
 #include "UART.h"
-#include "MRTOS.h"
+#include "ERTOS.h"
 
 
 
@@ -21,46 +21,61 @@ volatile uint32_t sysTicks =0;
 
 
 uint32_t stack1[40];
-OSThread blinky1;
+OSThread_t blinky1;
 void main1(){
 
 	while(1){
+		UART_send_stringL("Hello main 1");
 		LED1_ON
-		OS_delay(500);
+		uint32_t i=0;
+		for(i=0; i<1000000; ++i);
+//		OS_delay(500);
 		LED1_OFF
-		OS_delay(500);
+//		OS_delay(500);
+
+
 	}
 }
 
 
 uint32_t stack2[40];
-OSThread blinky2;
+OSThread_t blinky2;
 void main2(){
 	while(1){
+		UART_send_stringL("Hello main 2");
 		LED2_ON
-		OS_delay(1000);
+		uint32_t i=0;
+		for(i=0; i<1000000; ++i);
+//		OS_delay(1000);
 		LED2_OFF
-		OS_delay(1000);
+//		OS_delay(1000);
+
 	}
 }
 
 uint32_t stack3[40];
-OSThread blinky3;
+OSThread_t blinky3;
 void main3(){
 	while(1){
+		UART_send_stringL("Hello main 3");
 		LED3_ON
-		OS_delay(250);
+		uint32_t i=0;
+		for(i=0; i<1000000; ++i);
+//		OS_delay(250);
 		LED3_OFF
-		OS_delay(250);
+//		OS_delay(250);
+
 	}
 }
 
 uint32_t stack4[40];
-OSThread UART;
+OSThread_t UART;
 void main4(){
 	while(1){
-		UART_send_stringL("Hello");
-		OS_delay(500);
+		UART_send_stringL("Hello main 4");
+		uint32_t i=0;
+		for(i=0; i<1000000; ++i);
+//		OS_delay(500);
 	}
 }
 
@@ -100,22 +115,31 @@ void OS_onIdle(){
 
 int main(void) {
 
-	clock_setup(80);
+	clock_setup_MO(F_SysClk/1000000UL);
 	LEDs_EK_setup();
 	UART_initialize_polling();
 
 	OS_init(stack0, sizeof(stack0));
 
-	delay_timer_init();
+//	delay_timer_init();
 
-	delay_time(500);
-	delay_timer->CTL |= BIT0;
+//	delay_time(500);
+//	delay_timer->CTL |= BIT0;
 
 
-	OSThread_Start(&blinky1, &main1, stack1, sizeof(stack1));
-	OSThread_Start(&blinky2, &main2, stack2, sizeof(stack2));
-	OSThread_Start(&blinky3, &main3, stack3, sizeof(stack3));
-	OSThread_Start(&UART,  &main4, stack4, sizeof(stack4));
+//	OSThread_Start(&blinky1, &main1, stack1, sizeof(stack1));
+//	OSThread_Start(&blinky2, &main2, stack2, sizeof(stack2));
+//	OSThread_Start(&blinky3, &main3, stack3, sizeof(stack3));
+//	OSThread_Start(&UART,  &main4, stack4, sizeof(stack4));
+
+	blinky1.OSThreadHandler = &main1;
+	blinky2.OSThreadHandler = &main2;
+	blinky3.OSThreadHandler = &main3;
+	UART.OSThreadHandler = &main4;
+	OS_SVC_threadCreate(&blinky1, stack1, sizeof(stack1), 1);
+	OS_SVC_threadCreate(&blinky2, stack2, sizeof(stack2), 2);
+	OS_SVC_threadCreate(&blinky3, stack3, sizeof(stack3), 3);
+	OS_SVC_threadCreate(&UART, stack4, sizeof(stack4), 4);
 
 	OS_run();
 }
