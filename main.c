@@ -139,7 +139,7 @@ void GPIOJ_Handler(){
 	GPIO_button->ICR |= P0 | P1;
 }
 
-
+//useless here, it's used in keil
 void SystemInit(void){
 	SCB->CPACR |= 0x00F00000;
 }
