@@ -28,7 +28,7 @@ typedef struct list_t{
 	uint32_t ui32NoOfItems;
 
 	listItem_t* pliIndex;
-	listItem_t* pliHead;
+	listItem_t liHead;
 
 	//function pointer
 	//item list

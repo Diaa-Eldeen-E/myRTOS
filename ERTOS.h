@@ -25,7 +25,7 @@ typedef struct {
 
 	OSThreadHandler_t OSThreadHandler;
 
-	listItem_t* item;
+	listItem_t item;
 
 	uint32_t ui32TimeOut;
 

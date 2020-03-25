@@ -7,9 +7,16 @@
 ;DSB	data sync barrier
 	;.text
 
+		.global	OS_SVC_threadCreate
 		.global SVC_HandlerMain
 		.global	SVC_Handler
 		.global	PendSV_Handler
+
+
+OS_SVC_threadCreate:
+		svc	#1
+		bx	lr
+		
 
 SVC_Handler:
 		TST	lr,	#4	; lr bitwise-and bit 2
@@ -24,9 +31,12 @@ SVC_Handler:
 		;MRS r0,	psp
 		;check the bit for the msp or psp
 		;put the msp or psp in the r0 (first argument)
+		push	{lr}
+		
 		BL	SVC_HandlerMain
 		;call SVC_HandlerMain
 
+		pop	{lr}
 		BX lr
 
 

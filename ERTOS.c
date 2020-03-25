@@ -51,10 +51,10 @@ void OS_run(){
 //add status return
 void SVC_HandlerMain(uint32_t* sp){
 
-	uint32_t ui32SVCNo = ((uint32_t*) sp[6])[-2];
+	uint8_t ui8SVCNo = *((uint32_t*)((uint32_t) sp[6] - 2));//[-2];
 
 	//if(1) -> thread create
-	if(ui32SVCNo == 1){
+	if(ui8SVCNo == 1){
 
 		OS_threadCreate((OSThread_t*)sp[0],(uint32_t*) sp[1], sp[2], sp[3]);	//another argument to be added
 	}
@@ -67,7 +67,7 @@ void SVC_HandlerMain(uint32_t* sp){
 
 
 }
-
+//
 	//another argument to be added
 static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty){
 
@@ -119,21 +119,22 @@ static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint3
 	me->ui32Priority = ui32Priorty;
 	me->ui32TimeOut = 0;
 
-	me->item->ui32ThreadID = ui32NoOfThreads++;
+	me->item.ui32ThreadID = ui32NoOfThreads++;
 
-	listInsertItem(readyList, me->item);
+	listInsertItem(&readyList[ui32Priorty], &me->item);
 
 
 
 
 }
 
-//another argument to be added
-void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty){
-
-	asm(" svc	#1");
-	asm(" bx	lr");
-}
+//#pragma FUNC_ALWAYS_INLINE(OS_SVC_threadCreate)
+////another argument to be added
+//__inline void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty){
+//
+//	asm(" svc	#1");
+//	asm(" bx	lr");
+//}
 
 
 
@@ -142,9 +143,25 @@ void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uin
 void OS_init(uint32_t* sp, uint32_t stkSize){
 
 	//initialize lists (ready list, waiting list)
-	listInit(readyList);
+	uint32_t i;
+	for(i=0; i<PRIORITY_LEVELS; ++i){
+		listInit(&readyList[i]);
+	}
+
 	//create idle thread
 	idleThread.OSThreadHandler = &OS_idleThread;
+
+	SysTick->CTRL |= BIT1 | BIT0;	//enable timer and interrupt (4MHz clock)
+	SysTick->LOAD = 3999;	//1ms
+
+	//SCB->SHP[10] = 0xE0;	//pendSV priority	(only left most 3 bits)
+	//SCB->SHP[11] ;	//systick priority	(only left most 3 bits)
+	//SCB->SHP[7]	//SV priority		(only left most 3 bits)
+	__NVIC_SetPriority(SVCall_IRQn, 0);
+	__NVIC_SetPriority(SYSCTL_IRQn, 4);
+	__NVIC_SetPriority(PendSV_IRQn, 7);
+
+
 	OS_SVC_threadCreate(&idleThread, sp, stkSize, PRIORITY_LEVELS-1);
 
 	//set current working thread to the idle thread

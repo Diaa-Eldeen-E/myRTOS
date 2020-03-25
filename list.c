@@ -14,8 +14,8 @@
 
 void listInsertItemLast(list_t* list, listItem_t* item){
 
-	list->pliHead->pliPrev->pliNext = item;
-	list->pliHead->pliPrev = item;
+	list->liHead.pliPrev->pliNext = item;
+	list->liHead.pliPrev = item;
 
 	list->ui32NoOfItems++;
 
@@ -24,10 +24,25 @@ void listInsertItemLast(list_t* list, listItem_t* item){
 
 void listInsertItem(list_t* list, listItem_t* item){
 
-	list->pliIndex->pliNext->pliPrev = item;
-	list->pliIndex->pliNext = item;
-	list->pliIndex = item;
+	if(list->ui32NoOfItems < 1){
 
+		list->liHead.pliNext = item;
+		list->liHead.pliPrev = item;
+		list->pliIndex = item;
+		item->pliNext = &list->liHead;
+		item->pliPrev = &list->liHead;
+
+	}
+	else{
+		list->pliIndex->pliNext->pliPrev = item;
+
+		item->pliNext = list->pliIndex->pliNext;
+		item->pliPrev = list->pliIndex;
+
+		list->pliIndex->pliNext = item;
+		list->pliIndex = item;	//change index ??
+
+	}
 	list->ui32NoOfItems++;
 
 
@@ -35,6 +50,7 @@ void listInsertItem(list_t* list, listItem_t* item){
 
 listItem_t* listGetItem(list_t* list, listItem_t* item){
 
+	//check the no of items > 0
 	item->pliNext->pliPrev = item->pliPrev;
 	item->pliPrev = item->pliNext;
 
@@ -45,14 +61,10 @@ listItem_t* listGetItem(list_t* list, listItem_t* item){
 
 void listInit(list_t* list){
 
-	struct listItem_t* dummyItem;
-	dummyItem->pliNext = dummyItem;
-	dummyItem->pliPrev = dummyItem;
 
 	list->ui32NoOfItems = 0;	//convention?
 
-	list->pliIndex = dummyItem;
-	list->pliHead = dummyItem;
+	list->pliIndex = &list->liHead;
 
 
 

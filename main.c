@@ -137,7 +137,7 @@ int main(void) {
 	blinky3.OSThreadHandler = &main3;
 	UART.OSThreadHandler = &main4;
 	OS_SVC_threadCreate(&blinky1, stack1, sizeof(stack1), 1);
-	OS_SVC_threadCreate(&blinky2, stack2, sizeof(stack2), 2);
+	OS_SVC_threadCreate(&blinky2, stack2, sizeof(stack2), 1);
 	OS_SVC_threadCreate(&blinky3, stack3, sizeof(stack3), 3);
 	OS_SVC_threadCreate(&UART, stack4, sizeof(stack4), 4);
 
