@@ -14,6 +14,9 @@ extern void OS_onIdle();
 
 list_t readyList[PRIORITY_LEVELS];
 list_t* waitingList;
+OSThread_t* ptRunning = NULL;
+OSThread_t* ptNext = NULL;
+uint32_t ui32SysTicks =0;
 
 OSThread_t idleThread;
 uint64_t idleStack[40];
@@ -28,24 +31,55 @@ void OS_idleThread(){
 
 
 void SysTick_Handler(){
-//	++sysTicks;
+	++ui32SysTicks;
+	SysTick->CTRL |= 1;
 //	OS_tick();
-//
-//	__asm(" cpsid	 i");
-//	OS_sched();
-//	__asm(" cpsie	 i");
+
+	__asm(" cpsid	 i");
+	OS_sched();
+	__asm(" cpsie	 i");
+
 
 }
+
+//void PendSV_Handler(){
+//	while(1){
+//
+//	}
+//}
 
 
 void OS_run(){
 
+	__enable_irq();
 
-
+	OS_sched();
 
 	while(1){
 
 	}
+}
+
+void OS_sched(){
+
+	//decide the running thread from the ready list
+	uint32_t i=0;
+	for(i=0; i<PRIORITY_LEVELS; ++i){
+
+		if(readyList[i].ui32NoOfItems > 0)
+			break;
+
+	}
+	if(ptNext != NULL){
+		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptNext);	//insrt last, without changing index !!! !!!
+	}
+
+	ptNext = listGetItem(&readyList[i], readyList[i].ptIndex);
+
+	//listInsertItemLast(&readyList, ptRunning);
+	SCB->ICSR |= BIT28;	//pendSV
+
+
 }
 
 //add status return
@@ -115,13 +149,13 @@ static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint3
 
 
 	me->sp = sp;
-	me->ui32ThreadID = ui32NoOfThreads;
+	me->ui32ThreadID = ui32NoOfThreads++;
 	me->ui32Priority = ui32Priorty;
 	me->ui32TimeOut = 0;
 
-	me->item.ui32ThreadID = ui32NoOfThreads++;
+//	me->item.ui32ThreadID = ui32NoOfThreads++;
 
-	listInsertItem(&readyList[ui32Priorty], &me->item);
+	listInsertItem(&readyList[ui32Priorty], me);
 
 
 
@@ -167,5 +201,8 @@ void OS_init(uint32_t* sp, uint32_t stkSize){
 	//set current working thread to the idle thread
 
 
+	__NVIC_EnableIRQ(SYSCTL_IRQn);
+	__NVIC_EnableIRQ(SVCall_IRQn);
+	__NVIC_EnableIRQ(PendSV_IRQn);
 
 }

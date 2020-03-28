@@ -111,13 +111,14 @@ void OS_onIdle(){
 		__wfi();	//w8 for interrupts
 	}
 }
-
+//
 
 int main(void) {
 
 	clock_setup_MO(F_SysClk/1000000UL);
 	LEDs_EK_setup();
 	UART_initialize_polling();
+	UART_send_stringL("UART initialized successfully");
 
 	OS_init(stack0, sizeof(stack0));
 
