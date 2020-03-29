@@ -20,7 +20,7 @@ volatile uint32_t sysTicks =0;
 
 
 
-uint32_t stack1[40];
+uint32_t stack1[80];
 OSThread_t blinky1;
 void main1(){
 
@@ -28,7 +28,7 @@ void main1(){
 		UART_send_stringL("Hello main 1");
 		LED1_ON
 		uint32_t i=0;
-		for(i=0; i<1000000; ++i);
+		for(i=0; i<4000000; ++i);
 //		OS_delay(500);
 		LED1_OFF
 //		OS_delay(500);
@@ -38,14 +38,14 @@ void main1(){
 }
 
 
-uint32_t stack2[40];
+uint32_t stack2[80];
 OSThread_t blinky2;
 void main2(){
 	while(1){
 		UART_send_stringL("Hello main 2");
 		LED2_ON
 		uint32_t i=0;
-		for(i=0; i<1000000; ++i);
+		for(i=0; i<4000000; ++i);
 //		OS_delay(1000);
 		LED2_OFF
 //		OS_delay(1000);
@@ -53,7 +53,7 @@ void main2(){
 	}
 }
 
-uint32_t stack3[40];
+uint32_t stack3[80];
 OSThread_t blinky3;
 void main3(){
 	while(1){
@@ -68,7 +68,7 @@ void main3(){
 	}
 }
 
-uint32_t stack4[40];
+uint32_t stack4[80];
 OSThread_t UART;
 void main4(){
 	while(1){
@@ -103,7 +103,7 @@ void delay_timer_init(){
 
 
 
-uint32_t stack0[40];	//idle stack
+uint32_t stack0[80];	//idle stack
 
 void OS_onIdle(){
 	while(1){
@@ -111,9 +111,10 @@ void OS_onIdle(){
 		__wfi();	//w8 for interrupts
 	}
 }
-//
 
+//
 int main(void) {
+
 
 	clock_setup_MO(F_SysClk/1000000UL);
 	LEDs_EK_setup();

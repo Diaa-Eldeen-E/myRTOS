@@ -29,7 +29,7 @@ void OS_idleThread(){
 	}
 }
 
-
+//
 void SysTick_Handler(){
 	++ui32SysTicks;
 	SysTick->CTRL |= 1;
@@ -108,12 +108,12 @@ static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint3
 	static uint32_t ui32NoOfThreads =0;
 
 	//check stack alignment
+	if(ui32StkSize % 8 !=0)
+		while(1);
 
 	//set sp to the right point
-	sp = (uint32_t*)((((uint32_t)sp + ui32StkSize  ) / 8)* 8);	//for aligning the stack to 8 bytes
+	sp = (uint32_t*) ((uint32_t)sp + ui32StkSize - (18*4* FPU_ENABLED));	//18 for FPU registers
 
-
-	uint32_t* stk_limit;
 
 	*(--sp) = (1U << 24);	//thumb bit state xPSR
 	*(--sp) = (uint32_t) me->OSThreadHandler ;	//PC
@@ -124,6 +124,8 @@ static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint3
 	*(--sp) = 0x2U;	//R2
 	*(--sp) = 0x1U;	//R1
 	*(--sp) = 0x0U;	//R0
+
+
 
 	*(--sp) = 0xBU;	//R11
 	*(--sp) = 0xAU;	//R10
@@ -136,15 +138,6 @@ static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint3
 
 	*(--sp) = 0x4U;	//control
 	*(--sp) = 0x4U;	//EXCRETURN
-
-
-	stk_limit = (uint32_t*) (((((uint32_t)sp + 1U) / 8) + 1U)* 8);
-
-	//filling the stack with a value to make it easy in debugging
-	for (sp = sp-1U; sp>= stk_limit; --sp) {
-		*sp = 0xDEADBEEFU;
-	}
-
 
 
 
@@ -188,17 +181,12 @@ void OS_init(uint32_t* sp, uint32_t stkSize){
 	SysTick->CTRL |= BIT1 | BIT0;	//enable timer and interrupt (4MHz clock)
 	SysTick->LOAD = 3999;	//1ms
 
-	//SCB->SHP[10] = 0xE0;	//pendSV priority	(only left most 3 bits)
-	//SCB->SHP[11] ;	//systick priority	(only left most 3 bits)
-	//SCB->SHP[7]	//SV priority		(only left most 3 bits)
 	__NVIC_SetPriority(SVCall_IRQn, 0);
 	__NVIC_SetPriority(SYSCTL_IRQn, 4);
 	__NVIC_SetPriority(PendSV_IRQn, 7);
 
 
 	OS_SVC_threadCreate(&idleThread, sp, stkSize, PRIORITY_LEVELS-1);
-
-	//set current working thread to the idle thread
 
 
 	__NVIC_EnableIRQ(SYSCTL_IRQn);

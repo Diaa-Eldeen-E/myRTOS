@@ -10,6 +10,7 @@
 
 
 #define PRIORITY_LEVELS		9
+#define FPU_ENABLED	1
 
 
 #endif /* ERTOS_CONFIG_H_ */

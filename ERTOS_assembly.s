@@ -41,6 +41,7 @@ SVC_Handler:
 
 
 		
+;see LR and check for msp or psp
 
 
 		
@@ -48,10 +49,12 @@ PendSV_Handler:
 		cpsid	 i
 		ldr	r0,	ptRunningAddr
 		ldr	r0,	[r0]
-		cbz r0,	LoadNext
-		;save current context if running thread != NULL
+		
+		cbz r0,	LoadNext	;if runningThread = NULL, skip to LoadNext
+		;if psp, use mrs to bring psp to sp
+
 		push	{r4-r11}
-		push	{r4-r6}
+		push	{r4-r5}
 		;save current sp in current thread
 		
 		;ldr	r0,	ptRunningAddr
@@ -61,14 +64,17 @@ PendSV_Handler:
 LoadNext:
 		ldr	r1,	ptRunningAddr
 		
-		;change sp
+		;load sp from nextThread struct
 		ldr	r0,	ptNextAddr
 		ldr r0,	[r0]
 		str r0,	[r1]	; ptRunningAddr = ptNext
 		ldr	r0,	[r0, #4]	;2nd struct member
-		mov	sp,	r0
+		;check for psp or msp and then put it in one of them
+		;;;;
+		mov	sp,	r0	
+		
 		;restore new context
-		pop	{r4-r6}
+		pop	{r4-r5}
 		pop	{r4-r11}
 		cpsie	 i
 		bx lr
