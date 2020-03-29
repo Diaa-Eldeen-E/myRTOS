@@ -33,6 +33,7 @@
 //
 //}OSThread_t;
 
+extern void OS_SVC_run();
 
 void OS_run();
 void OS_sched();

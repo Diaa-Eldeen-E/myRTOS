@@ -41,6 +41,7 @@ void main1(){
 uint32_t stack2[80];
 OSThread_t blinky2;
 void main2(){
+
 	while(1){
 		UART_send_stringL("Hello main 2");
 		LED2_ON
@@ -143,7 +144,11 @@ int main(void) {
 	OS_SVC_threadCreate(&blinky3, stack3, sizeof(stack3), 3);
 	OS_SVC_threadCreate(&UART, stack4, sizeof(stack4), 4);
 
-	OS_run();
+	OS_SVC_run();
+
+	while(1){
+
+	}
 }
 
 

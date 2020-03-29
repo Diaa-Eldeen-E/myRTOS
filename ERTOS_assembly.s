@@ -9,14 +9,23 @@
 
 		.global	ptRunning
 		.global ptNext
+		.global	lrTemp
 ptRunningAddr:	.word	ptRunning
 ptNextAddr:		.word	ptNext
+lrTempAddr:		.word	lrTemp
 
 
 		.global	OS_SVC_threadCreate
 		.global SVC_HandlerMain
 		.global	SVC_Handler
 		.global	PendSV_Handler
+		.global	OS_SVC_run
+		
+OS_SVC_run:
+		svc	#0
+infLoop:
+		b infLoop
+		;bx	lr
 		
 OS_SVC_threadCreate:
 		svc	#1
@@ -34,9 +43,13 @@ SVC_Handler:
 		;IT NE
 		;MRS r0,	psp
 		
-		push	{lr}
+		;push	{lr}
+		ldr	r1,	lrTempAddr
+		str	lr,	[r1]
 		BL	SVC_HandlerMain	;call SVC_HandlerMain
-		pop	{lr}
+		ldr r1,	lrTempAddr
+		ldr	lr,	[r1]
+		;pop	{lr}
 		BX lr
 
 
@@ -51,7 +64,10 @@ PendSV_Handler:
 		ldr	r0,	[r0]
 		
 		cbz r0,	LoadNext	;if runningThread = NULL, skip to LoadNext
-		;if psp, use mrs to bring psp to sp
+		
+		;if psp
+		;load psp to r1
+		; use store multiple to store the registers inside the psp after loading it into r1
 
 		push	{r4-r11}
 		push	{r4-r5}
