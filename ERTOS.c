@@ -33,6 +33,7 @@ void OS_idleThread(){
 
 //
 void SysTick_Handler(){
+
 	++ui32SysTicks;
 	SysTick->CTRL |= 1;
 //	OS_tick();
@@ -41,17 +42,10 @@ void SysTick_Handler(){
 	OS_sched();
 	__asm(" cpsie	 i");
 
-	SCB->ICSR |= BIT28;	//pendSV	//////
+	SCB->ICSR |= BIT28;	//pendSV
 }
 
-//void PendSV_Handler(){
-//	while(1){
-//
-//	}
-//}
 
-
-//
 
 void OS_run(){
 
@@ -62,19 +56,24 @@ void OS_run(){
 	asm(" ldr	r0,	ptNextAddr");
 	asm(" ldr   r0,	[r0]");
 	asm(" ldr   r0, [r0, #4]");
+	if(FPU_ENABLED)
+		asm(" add   r0, #104");	//10 (r3-r11 + lr , control) + 16 (s16-s31)
+	else
+		asm(" add   r0, #40");
 	asm(" msr psp, r0");
 
-	lrTemp = 0xffffffed;
+	lrTemp = 0xFFFFFFED | ((!FPU_ENABLED) << 4);	//exception Return	( (fpu/no-fpu), non privilege, psp)
 
+	//change thread access to non-privilege
 	asm(" mrs r0,	control");	//load control
 	asm(" orr r0, r0, #3");
 	asm(" msr control, r0");	//save in control
+	asm("  isb");
 
-	__ISB();
+	ptRunning = ptNext;
+
 	__enable_irq();
 
-
-	SCB->ICSR |= BIT28;	//pendSV
 }
 
 
@@ -89,13 +88,11 @@ void OS_sched(){
 
 	}
 	if(ptNext != NULL){
-		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptNext);	//insrt last, without changing index !!! !!!
+		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptNext);	//insert last, without changing index !!! !!!
 	}
 
 	ptNext = listGetItem(&readyList[i], readyList[i].ptIndex);
 
-
-//	SCB->ICSR |= BIT28;	//pendSV
 
 }
 
@@ -131,7 +128,7 @@ static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint3
 		while(1);
 
 	//set sp to the right point
-	sp = (uint32_t*) ((uint32_t)sp + ui32StkSize - (18*4* FPU_ENABLED));	//18 for FPU registers
+	sp = (uint32_t*) ((uint32_t)sp + ui32StkSize - (18*4* FPU_ENABLED));	//18 for fpu auto context (s0-s15 + FPSCR + aligner)
 
 
 	*(--sp) = (1U << 24);	//thumb bit state xPSR
@@ -144,19 +141,22 @@ static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint3
 	*(--sp) = 0x1U;	//R1
 	*(--sp) = 0x0U;	//R0
 
+	sp -= 16 * FPU_ENABLED;	//fpu manual context (s16-s31)
 
 
-//	*(--sp) = 0xBU;	//R11
-//	*(--sp) = 0xAU;	//R10
-//	*(--sp) = 0x9U;	//R9
-//	*(--sp) = 0x8U;	//R8
-//	*(--sp) = 0x7U;	//R7
-//	*(--sp) = 0x6U;	//R6
-//	*(--sp) = 0x5U;	//R5
-//	*(--sp) = 0x4U;	//R4
+	*(--sp) = 0xBU;	//R11
+	*(--sp) = 0xAU;	//R10
+	*(--sp) = 0x9U;	//R9
+	*(--sp) = 0x8U;	//R8
+	*(--sp) = 0x7U;	//R7
+	*(--sp) = 0x6U;	//R6
+	*(--sp) = 0x5U;	//R5
+	*(--sp) = 0x4U;	//R4
 
-//	*(--sp) = 0x4U;	//control
-//	*(--sp) = 0x4U;	//EXCRETURN
+	*(--sp) = 0x3U;	//control
+
+
+	*(--sp) = 0xFFFFFFED | ((!FPU_ENABLED) << 4);	//Exception return,	( (fpu/no-fpu), non prev, psp)
 
 
 
@@ -212,4 +212,5 @@ void OS_init(uint32_t* sp, uint32_t stkSize){
 	__NVIC_EnableIRQ(SVCall_IRQn);
 	__NVIC_EnableIRQ(PendSV_IRQn);
 
+//	__enable_irq();
 }

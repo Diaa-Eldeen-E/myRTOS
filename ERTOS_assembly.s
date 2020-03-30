@@ -9,6 +9,7 @@
 
 		.global	ptRunning
 		.global ptNext
+		.global ptNextAddr
 		.global	lrTemp
 ptRunningAddr:	.word	ptRunning
 ptNextAddr:		.word	ptNext
@@ -64,18 +65,20 @@ PendSV_Handler:
 		ldr	r0,	[r0]
 		
 		cbz r0,	LoadNext	;if runningThread = NULL, skip to LoadNext
-		
-		;if psp
-		;load psp to r1
+	
+		mrs	r1,	psp	;load psp to r1
+		tst	lr,	#0x10	;check fpu from lr	bit 4
+		it	eq
+		vstmdbeq	r1!, {s16-s31}
 		; use store multiple to store the registers inside the psp after loading it into r1
-
-		push	{r4-r11}
-		push	{r4-r5}
+		mov	r2,	lr
+		mrs	r3,	control
+		stmdb r1!, {r2-r11}
 		;save current sp in current thread
 		
 		;ldr	r0,	ptRunningAddr
 		;ldr	r0,	[r0]
-		str	sp,	[r0, #4]
+		str	r1,	[r0, #4]
 
 LoadNext:
 		ldr	r1,	ptRunningAddr
@@ -85,13 +88,23 @@ LoadNext:
 		ldr r0,	[r0]
 		str r0,	[r1]	; ptRunningAddr = ptNext
 		ldr	r0,	[r0, #4]	;2nd struct member
-		;check for psp or msp and then put it in one of them
+		
+		
 		;;;;
-		mov	sp,	r0	
+		;mov	sp,	r0	
 		
 		;restore new context
-		pop	{r4-r5}
-		pop	{r4-r11}
+		ldmia r0!, {r2-r11}		; lr, control, r3-r11
+		mov	lr,	r2
+		msr	control, r3
+		isb
+		tst	lr,	#0x10	;check fpu in lr
+		it	eq	;if fpu
+		vldmiaeq	r0!, {s16-s31}	;restore fpu context
+		
+		;pop	{r4-r5}
+		;pop	{r4-r11}
+		msr	psp, r0	;move the r0 to psp using msr 
 		cpsie	 i
 		bx lr
 

@@ -16,7 +16,25 @@ uint32_t F_SysClk = 80000000;
 volatile uint32_t sysTicks =0;
 
 
-
+//#define delay_timer	TIMER6
+//#define delay_timer_bit	BIT6
+//#define delay_timer_irq	TIMER6A_IRQn
+//
+//void delay_timer_init(){
+//
+//	SYSCTL->RCGCTIMER |= delay_timer_bit;
+//	delay_us(1);
+//
+//	delay_timer->CTL =0;
+//	delay_timer->CFG = 0x0;
+//	delay_timer->TAMR = 0x1 | BIT4 ;	//count up, one shot
+//	delay_timer->IMR |= BIT0;
+//	__NVIC_EnableIRQ(delay_timer_irq);
+//	//__enable_irq();
+//	delay_timer->CTL |= BIT1 ;
+//}
+//
+//#define delay_time(duration)	delay_timer->TAILR = (F_SysClk / 1000) * duration
 
 
 
@@ -31,6 +49,7 @@ void main1(){
 		for(i=0; i<4000000; ++i);
 //		OS_delay(500);
 		LED1_OFF
+		for(i=0; i<4000000; ++i);
 //		OS_delay(500);
 
 
@@ -42,13 +61,16 @@ uint32_t stack2[80];
 OSThread_t blinky2;
 void main2(){
 
+//	__disable_irq();
 	while(1){
 		UART_send_stringL("Hello main 2");
 		LED2_ON
+//		__enable_irq();
 		uint32_t i=0;
 		for(i=0; i<4000000; ++i);
 //		OS_delay(1000);
 		LED2_OFF
+		for(i=0; i<4000000; ++i);
 //		OS_delay(1000);
 
 	}
@@ -82,25 +104,7 @@ void main4(){
 
 
 
-#define delay_timer	TIMER6
-#define delay_timer_bit	BIT6
-#define delay_timer_irq	TIMER6A_IRQn
 
-void delay_timer_init(){
-
-	SYSCTL->RCGCTIMER |= delay_timer_bit;
-	delay_us(1);
-
-	delay_timer->CTL =0;
-	delay_timer->CFG = 0x0;
-	delay_timer->TAMR = 0x1 | BIT4 ;	//count up, one shot
-	delay_timer->IMR |= BIT0;
-	__NVIC_EnableIRQ(delay_timer_irq);
-	//__enable_irq();
-	delay_timer->CTL |= BIT1 ;
-}
-
-#define delay_time(duration)	delay_timer->TAILR = (F_SysClk / 1000) * duration
 
 
 
@@ -154,16 +158,16 @@ int main(void) {
 
 
 
-void TIMER6_Handler(){
-	GPIOF_DATA(P0) ^= P0;
-	delay_timer->CTL |= BIT0;
-
-	int i=0;	//weird!!, the LED doesn't toggle without it
-
-
-	delay_timer->ICR |= BIT0;
-
-}
+//void TIMER6_Handler(){
+//	GPIOF_DATA(P0) ^= P0;
+//	delay_timer->CTL |= BIT0;
+//
+//	int i=0;	//weird!!, the LED doesn't toggle without it
+//
+//
+//	delay_timer->ICR |= BIT0;
+//
+//}
 
 
 void GPIOJ_Handler(){
