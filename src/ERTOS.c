@@ -7,16 +7,16 @@
 
 
 #include "ERTOS.h"
-
+static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
 
 extern void OS_onIdle();
 
 
 list_t readyList[PRIORITY_LEVELS];
 list_t* waitingList;
-OSThread_t* ptRunning = NULL;
-OSThread_t* ptNext = NULL;
-uint32_t ui32SysTicks =0;
+OSThread_t* ptRunning = NULL;	///////NULL
+OSThread_t* ptNext = NULL;		///////NULL
+uint32_t ui32SysTicks = 0;
 
 uint32_t lrTemp;
 
@@ -52,23 +52,23 @@ void OS_run(){
 	OS_sched();
 
 	//load psp with the running thread sp
-	asm("ptNextAddr:		.word	ptNext");
-	asm(" ldr	r0,	ptNextAddr");
-	asm(" ldr   r0,	[r0]");
-	asm(" ldr   r0, [r0, #4]");
+	__asm("ptNextAddr:		.word	ptNext");
+	__asm(" ldr	r0,	ptNextAddr");
+	__asm(" ldr   r0,	[r0]");
+	__asm(" ldr   r0, [r0, #4]");
 	if(FPU_ENABLED)
-		asm(" add   r0, #104");	//10 (r3-r11 + lr , control) + 16 (s16-s31)
+		__asm(" add   r0, #104");	//10 (r3-r11 + lr , control) + 16 (s16-s31)
 	else
-		asm(" add   r0, #40");
-	asm(" msr psp, r0");
+		__asm(" add   r0, #40");
+	__asm(" msr psp, r0");
 
 	lrTemp = 0xFFFFFFED | ((!FPU_ENABLED) << 4);	//exception Return	( (fpu/no-fpu), non privilege, psp)
 
 	//change thread access to non-privilege
-	asm(" mrs r0,	control");	//load control
-	asm(" orr r0, r0, #3");
-	asm(" msr control, r0");	//save in control
-	asm("  isb");
+	__asm(" mrs r0,	control");	//load control
+	__asm(" orr r0, r0, #3");
+	__asm(" msr control, r0");	//save in control
+	__asm("  isb");
 
 	ptRunning = ptNext;
 
@@ -87,9 +87,16 @@ void OS_sched(){
 			break;
 
 	}
-	if(ptNext != NULL){
-		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptNext);	//insert last, without changing index !!! !!!
+	if(i >= PRIORITY_LEVELS)	//No threads found!
+		while(1);
+
+	//insert the last running thread back into the ready list before switching
+	if(ptRunning != NULL){
+		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptRunning);
 	}
+//	if(ptNext != NULL){
+//		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptNext);
+//	}
 
 	ptNext = listGetItem(&readyList[i], readyList[i].ptIndex);
 
@@ -119,7 +126,7 @@ void SVC_HandlerMain(uint32_t* sp){
 }
 //
 	//another argument to be added
-static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty){
+static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty){
 
 	static uint32_t ui32NoOfThreads =0;
 
@@ -176,10 +183,10 @@ static OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint3
 
 //#pragma FUNC_ALWAYS_INLINE(OS_SVC_threadCreate)
 ////another argument to be added
-//__inline void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty){
+//__always_inline __inline void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty){
 //
-//	asm(" svc	#1");
-//	asm(" bx	lr");
+//	__asm(" svc	#1");
+//	__asm(" bx	lr");
 //}
 
 
@@ -204,12 +211,14 @@ void OS_init(uint32_t* sp, uint32_t stkSize){
 	__NVIC_SetPriority(SYSCTL_IRQn, 4);
 	__NVIC_SetPriority(PendSV_IRQn, 7);
 
+	__NVIC_EnableIRQ(SVCall_IRQn);	//
+	__enable_irq();	//
 
 	OS_SVC_threadCreate(&idleThread, sp, stkSize, PRIORITY_LEVELS-1);
 
 
 	__NVIC_EnableIRQ(SYSCTL_IRQn);
-	__NVIC_EnableIRQ(SVCall_IRQn);
+
 	__NVIC_EnableIRQ(PendSV_IRQn);
 
 //	__enable_irq();

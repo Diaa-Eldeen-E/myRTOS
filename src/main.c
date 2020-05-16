@@ -19,7 +19,7 @@ volatile uint32_t sysTicks =0;
 //#define delay_timer	TIMER6
 //#define delay_timer_bit	BIT6
 //#define delay_timer_irq	TIMER6A_IRQn
-//
+////
 //void delay_timer_init(){
 //
 //	SYSCTL->RCGCTIMER |= delay_timer_bit;
@@ -112,8 +112,9 @@ uint32_t stack0[80];	//idle stack
 
 void OS_onIdle(){
 	while(1){
-	//UART_send_stringL("Idle");
-		__wfi();	//w8 for interrupts
+	UART_send_stringL("Idle");
+		__WFI();	//w8 for interrupts
+
 	}
 }
 
@@ -126,12 +127,15 @@ int main(void) {
 	UART_initialize_polling();
 	UART_send_stringL("UART initialized successfully");
 
-	OS_init(stack0, sizeof(stack0));
+
 
 //	delay_timer_init();
-
+//
 //	delay_time(500);
 //	delay_timer->CTL |= BIT0;
+
+
+	OS_init(stack0, sizeof(stack0));
 
 
 //	OSThread_Start(&blinky1, &main1, stack1, sizeof(stack1));
@@ -157,8 +161,7 @@ int main(void) {
 
 
 
-
-//void TIMER6_Handler(){
+void TIMER6_Handler(){
 //	GPIOF_DATA(P0) ^= P0;
 //	delay_timer->CTL |= BIT0;
 //
@@ -166,15 +169,11 @@ int main(void) {
 //
 //
 //	delay_timer->ICR |= BIT0;
-//
-//}
+
+}
 
 
 void GPIOJ_Handler(){
 	GPIO_button->ICR |= P0 | P1;
 }
 
-//useless here, it's used in keil
-void SystemInit(void){
-	SCB->CPACR |= 0x00F00000;
-}

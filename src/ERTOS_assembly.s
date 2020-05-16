@@ -36,6 +36,8 @@ OS_SVC_threadCreate:
 		bx	lr
 		
 
+//It causes error "Invalid state (arm state)" when we don't use the following line
+.type SVC_Handler, %function	
 SVC_Handler:
 		TST	lr,	#4	@ lr bitwise-& bit 2	@check the bit for the msp or psp
 		IT	EQ
@@ -61,7 +63,7 @@ SVC_Handler:
 #see LR and check for msp or psp
 
 
-		
+.type PendSV_Handler, %function
 PendSV_Handler:
 		cpsid	 i
 		ldr	r0,	ptRunningAddr
