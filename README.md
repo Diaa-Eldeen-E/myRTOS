@@ -5,10 +5,10 @@
 ## A practical project for learning the RTOS from the inside
 
 ## It has the following features:
-- Priority preemptive with round robin scheduling algorithm.
+- Priority preemptive scheduling with round robin algorithm.
 - Context switching supports many modes of operation (FPU or non FPU, PSP or MSP).
-- Supports supervisor system calls to isolate the OS layer.
+- Uses supervisor system calls to isolate the OS layer.
 - Provides an idle task defined by the user which gets executed when there isn't any ready task.
-- Supports mutex and semaphore (This is stil in progress).
+- Supports mutex and semaphore (This is stil a work in progress).
 - A config header file to control the RTOS e.g. FPU_ENABLED, PRIORTY_LEVELS.
 
