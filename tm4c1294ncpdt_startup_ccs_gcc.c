@@ -1,6 +1,6 @@
 //*****************************************************************************
 //
-// Startup code for use with TI's Code Composer Studio.
+// Startup code for use with TI's Code Composer Studio and GNU tools.
 //
 // Copyright (c) 2011-2014 Texas Instruments Incorporated.  All rights reserved.
 // Software License Agreement
@@ -34,25 +34,28 @@ static void NmiSR(void);
 static void FaultISR(void);
 static void IntDefaultHandler(void);
 
-
-void SysTick_Handler();
+extern void SysTick_Handler();
 extern void PendSV_Handler();
 extern void SVC_Handler();
-void TIMER6_Handler();
-//*****************************************************************************
-//
-// External declaration for the reset handler that is to be called when the
-// processor is started
-//
-//*****************************************************************************
-extern void _c_int00(void);
+extern void TIMER6_Handler();
+
+#ifndef HWREG
+#define HWREG(x) (*((volatile uint32_t *)(x)))
+#endif
 
 //*****************************************************************************
 //
-// Linker variable that marks the top of the stack.
+// The entry point for the application.
 //
 //*****************************************************************************
-extern uint32_t __STACK_TOP;
+extern int main(void);
+
+//*****************************************************************************
+//
+// Reserve space for the system stack.
+//
+//*****************************************************************************
+static uint32_t pui32Stack[128];
 
 //*****************************************************************************
 //
@@ -68,10 +71,10 @@ extern uint32_t __STACK_TOP;
 // the program if located at a start address other than 0.
 //
 //*****************************************************************************
-#pragma DATA_SECTION(g_pfnVectors, ".intvecs")
+__attribute__ ((section(".intvecs")))
 void (* const g_pfnVectors[])(void) =
 {
-    (void (*)(void))((uint32_t)&__STACK_TOP),
+    (void (*)(void))((uint32_t)pui32Stack + sizeof(pui32Stack)),
                                             // The initial stack pointer
     ResetISR,                               // The reset handler
     NmiSR,                                  // The NMI handler
@@ -186,7 +189,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // AES 0
     IntDefaultHandler,                      // DES3DES 0
     IntDefaultHandler,                      // LCD Controller 0
-	IntDefaultHandler,                      // Timer 6 subtimer A
+	TIMER6_Handler,                      // Timer 6 subtimer A
     IntDefaultHandler,                      // Timer 6 subtimer B
     IntDefaultHandler,                      // Timer 7 subtimer A
     IntDefaultHandler,                      // Timer 7 subtimer B
@@ -206,6 +209,19 @@ void (* const g_pfnVectors[])(void) =
 
 //*****************************************************************************
 //
+// The following are constructs created by the linker, indicating where the
+// the "data" and "bss" segments reside in memory.  The initializers for the
+// for the "data" segment resides immediately following the "text" segment.
+//
+//*****************************************************************************
+extern uint32_t __data_load__;
+extern uint32_t __data_start__;
+extern uint32_t __data_end__;
+extern uint32_t __bss_start__;
+extern uint32_t __bss_end__;
+
+//*****************************************************************************
+//
 // This is the code that gets called when the processor first starts execution
 // following a reset event.  Only the absolutely necessary set is performed,
 // after which the application supplied entry() routine is called.  Any fancy
@@ -217,12 +233,46 @@ void (* const g_pfnVectors[])(void) =
 void
 ResetISR(void)
 {
+    uint32_t *pui32Src, *pui32Dest;
+
     //
-    // Jump to the CCS C initialization routine.  This will enable the
-    // floating-point unit as well, so that does not need to be done here.
+    // Copy the data segment initializers from flash to SRAM.
     //
-    __asm("    .global _c_int00\n"
-          "    b.w     _c_int00");
+    pui32Src = &__data_load__;
+    for(pui32Dest = &__data_start__; pui32Dest < &__data_end__; )
+    {
+        *pui32Dest++ = *pui32Src++;
+    }
+
+    //
+    // Zero fill the bss segment.
+    //
+    __asm("    ldr     r0, =__bss_start__\n"
+          "    ldr     r1, =__bss_end__\n"
+          "    mov     r2, #0\n"
+          "    .thumb_func\n"
+          "zero_loop:\n"
+          "        cmp     r0, r1\n"
+          "        it      lt\n"
+          "        strlt   r2, [r0], #4\n"
+          "        blt     zero_loop");
+
+    //
+    // Enable the floating-point unit.  This must be done here to handle the
+    // case where main() uses floating-point and the function prologue saves
+    // floating-point registers (which will fault if floating-point is not
+    // enabled).  Any configuration of the floating-point unit using DriverLib
+    // APIs must be done here prior to the floating-point unit being enabled.
+    //
+    // Note that this does not use DriverLib since it might not be included in
+    // this project.
+    //
+    HWREG(0xE000ED88) = ((HWREG(0xE000ED88) & ~0x00F00000) | 0x00F00000);
+    
+    //
+    // Call the application's entry point.
+    //
+    main();
 }
 
 //*****************************************************************************
@@ -241,7 +291,6 @@ NmiSR(void)
     while(1)
     {
     }
-
 }
 
 //*****************************************************************************
