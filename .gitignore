@@ -10,11 +10,13 @@ Debug/
 Debug__GNU/
 Release/
 targetConfigs/
+_builds/
 # ---------------------------------------------------------
 
 #this ingores a certain file
 
 *tm4c1294ncpdt_startup_ccs_TI.c
+*TPscript.ps1
 # ---------------------------------------------------------
 
 #this ignores all matching files
