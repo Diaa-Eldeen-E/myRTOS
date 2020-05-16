@@ -1,9 +1,11 @@
-
-cmake_minimum_required(VERSION 3.1)
-
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Toolchain")
 
 include("cmake_arm_none_eabi.cmake")
+
+message(STATUS ("CMAKE MODULE PATH: ${CMAKE_MODULE_PATH}")
+cmake_minimum_required(VERSION 3.1)
+
+
 
 set(ProjName myRTOS)
 

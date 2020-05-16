@@ -1,3 +1,5 @@
+message(STATUS ("Processing the arm-none-eabi tool chain file")
+
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 
