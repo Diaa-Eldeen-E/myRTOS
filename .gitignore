@@ -16,7 +16,9 @@ _builds/
 #this ingores a certain file
 
 *tm4c1294ncpdt_startup_ccs_TI.c
+#*tm4c1294ncpdt.cmd
 *TPscript.ps1
+
 # ---------------------------------------------------------
 
 #this ignores all matching files
