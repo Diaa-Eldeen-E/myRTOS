@@ -1,4 +1,4 @@
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/Toolchain")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Toolchain")
 
 include("cmake_arm_none_eabi.cmake")
 
