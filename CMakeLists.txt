@@ -1,10 +1,10 @@
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Toolchain")
 
-include("cmake_arm_none_eabi.cmake")
+# Using search in module path mode, the extension (.cmake) must be omitted
+include(cmake_arm_none_eabi)	
 
-message(STATUS "CMAKE MODULE PATH: ${CMAKE_MODULE_PATH}")
 cmake_minimum_required(VERSION 3.1)
-
 
 
 set(ProjName myRTOS)
@@ -37,9 +37,11 @@ set(SOURCES
 	src/main.c
 	src/ERTOS.c
 	src/list.c
-	ERTOS_assembly.s
+	src/ERTOS_assembly.s
 	tm4c1294ncpdt_startup_ccs_gcc.c
 	)
+	
+set_property(SOURCE src/ERTOS_assembly.s PROPERTY LANGUAGE C)
 	
 set(CPU_OPTIONS "-mthumb -mcpu=cortex-m4 -march=armv7e-m")
 set(FPU_OPTIONS "-mfloat-abi=soft -mfpu=fpv4-sp-d16")
@@ -67,14 +69,3 @@ target_include_directories(${ProjName} PUBLIC
 			 )
 
 target_link_libraries(${ProjName} UART)
-
-
-# -------------------------------------- print ---------------------------------------
-function(print_name varname)
-  message(STATUS "Variable name: '${varname}', value: '${${varname}}'")
-endfunction()
-
-print_name(CMAKE_EXECUTABLE_SUFFIX)
-print_name(CMAKE_C_FLAGS)
-print_name(CMAKE_EXE_LINKER_FLAGS)
-# -------------------------------------------------------------------------------------
