@@ -1,0 +1,39 @@
+#this ignores a certain folder any where
+
+.metadata/
+.tempFiles/
+dvt/
+RemoteSystemsTempFiles/
+.launches/
+.settings/
+Debug/
+Debug__GNU/
+Release/
+targetConfigs/
+# ---------------------------------------------------------
+
+#this ingores a certain file
+
+*tm4c1294ncpdt_startup_ccs_TI.c
+# ---------------------------------------------------------
+
+#this ignores all matching files
+
+*.workspace
+*.xml
+*.ccxml
+*.ccsproject
+*.cproject
+*.project
+*.eep
+*.elf
+*.hex
+*.out
+*.lss
+*.map
+*.srec
+*.d
+*.o
+*.obj
+*.mk
+*.opt
