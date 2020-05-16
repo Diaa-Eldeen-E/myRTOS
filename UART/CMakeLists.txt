@@ -1,12 +1,6 @@
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Toolchain")
 
-cmake_minimum_required(VERSION 3.1)
-
-message(STATUS "Print src dir: ${CMAKE_SOURCE_DIR} ")
-message(STATUS "Print project src dir: ${PROJECT_SOURCE_DIR} ")
-
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/Toolchain")
-
-include("cmake_arm_none_eabi.cmake")
+# include(cmake_arm_none_eabi)
 
 set(ProjName UART)
 
@@ -30,7 +24,7 @@ set(CMAKE_C_FLAGS
 	-Wall -g -MD -std=c99")
 
 
-#Executables and links
+# Executables and links
 add_library(${ProjName} "${SOURCES}")
 
 target_include_directories(${ProjName} PUBLIC
