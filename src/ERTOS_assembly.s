@@ -1,12 +1,6 @@
 
-#MRS rd, spec reg	move from special register to register
-#MSR	spec reg rd	move from register to special register
 
-#ISB	Instruction sync barrier
-#DMB	data memory barrier
-#DSB	data sync barrier
-	#.text
-
+.text	@ This is the default any way
 .thumb
 .syntax unified
 
@@ -29,7 +23,6 @@ OS_SVC_run:
 		svc	#0
 infLoop:
 		b infLoop
-		#bx	lr
 		
 OS_SVC_threadCreate:
 		svc	#1
@@ -39,79 +32,79 @@ OS_SVC_threadCreate:
 //It causes error "Invalid state (arm state)" when we don't use the following line
 .type SVC_Handler, %function	
 SVC_Handler:
-		TST	lr,	#4	@ lr bitwise-& bit 2	@check the bit for the msp or psp
-		IT	EQ
-		MRSEQ	r0,	msp	@put the msp or psp in the r0 (first argument)
+		# put sp in r0 (passing it as the first argument to SVC_HandlerMain)
+		TST	lr,	#4	@ lr bitwise-& bit 2	@ check the bit for the msp or psp
+		IT	EQ		@ if msp
+		MRSEQ	r0,	msp	
 		IT	NE
 		MRSNE	r0,	psp
-		#IT EQ	#zero flag
-		#MRS	r0,	msp
-		#IT NE
-		#MRS r0,	psp
 		
-		#push	{lr}
-		ldr	r1,	lrTempAddr
+		ldr	r1,	lrTempAddr	@ store the return address because it might be over written
 		str	lr,	[r1]
-		BL	SVC_HandlerMain	@call SVC_HandlerMain
-		ldr r1,	lrTempAddr
+		
+		BL	SVC_HandlerMain	@ call SVC_HandlerMain
+		
+		ldr r1,	lrTempAddr	@ restore the return address
 		ldr	lr,	[r1]
-		#pop	{lr}
 		BX lr
 
-
-		
-#see LR and check for msp or psp
 
 
 .type PendSV_Handler, %function
 PendSV_Handler:
-		cpsid	 i
+		cpsid	 i		@ Disable interrupts
+		
+		# Save the current context
 		ldr	r0,	ptRunningAddr
 		ldr	r0,	[r0]
 		
-		cbz r0,	LoadNext	@if runningThread = NULL, skip to LoadNext
+		cbz r0,	LoadNext	@ if runningThread = NULL, skip to LoadNext
 	
-		mrs	r1,	psp		@load psp to r1
-		tst	lr,	#0x10	@check fpu from lr	bit 4
-		it	eq
-		vstmdbeq	r1!, {s16-s31}
-		# use store multiple to store the registers inside the psp after loading it into r1
-		mov	r2,	lr
-		mrs	r3,	control
-		stmdb r1!, {r2-r11}
-		#save current sp in current thread
+		mrs	r1,	psp		@ load psp to r1
+		tst	lr,	#0x10	@ check fpu from lr	bit 4
+		it	eq			@ if FPU
+		vstmdbeq	r1!, {s16-s31}	@ Save FPU context
 		
-		#ldr	r0,	ptRunningAddr
+		mov	r2,	lr		@ include lr in the context
+		mrs	r3,	control	@ include control in the context
+		stmdb r1!, {r2-r11}	@ Save the context
+	
+		
+		# Uncomment the following lines if r0 value changed 
+		#ldr	r0,	ptRunningAddr	
 		#ldr	r0,	[r0]
-		str	r1,	[r0, #4]
+		str	r1,	[r0, #4]	@ save current sp in the current running thread
 
 LoadNext:
 		ldr	r1,	ptRunningAddr
 		
-		#load sp from nextThread struct
+		# load sp from nextThread struct
 		ldr	r0,	ptNextAddr
 		ldr r0,	[r0]
-		str r0,	[r1]		@ptRunningAddr = ptNext
-		ldr	r0,	[r0, #4]	@2nd struct member
+		str r0,	[r1]		@ ptRunningAddr = ptNext
+		ldr	r0,	[r0, #4]	@ 2nd struct member (sp)
 		
-		
-		# -------------------------
-		#mov	sp,	r0	
-		
-		#restore new context
+		# restore new context
 		ldmia r0!, {r2-r11}		@lr, control, r3-r11
 		mov	lr,	r2
 		msr	control, r3
 		isb
-		tst	lr,	#0x10		@check fpu in lr
-		it	eq				@if fpu
+		tst	lr,	#0x10		@ check fpu in lr
+		it	eq				@ if fpu
 		vldmiaeq	r0!, {s16-s31}	@restore fpu context
 		
 		#pop	{r4-r5}
 		#pop	{r4-r11}
-		msr	psp, r0		@move the r0 to psp using msr 
-		cpsie	 i
+		msr	psp, r0		@ move the r0 to psp using msr 
+		cpsie	 i		@ Enable interrupts
 		bx lr
 
 
+# Quick reference
+#MRS rd, spec reg	move from special register to register
+#MSR	spec reg rd	move from register to special register
+
+#ISB	Instruction sync barrier
+#DMB	data memory barrier
+#DSB	data sync barrier
 
