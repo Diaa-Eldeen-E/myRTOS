@@ -29,7 +29,8 @@ OS_SVC_threadCreate:
 		bx	lr
 		
 
-//It causes error "Invalid state (arm state)" when we don't use the following line
+# It causes error "Invalid state (arm state)" when we don't use the following line
+# It sets the symbol name as a function symbol in the symbol entry table
 .type SVC_Handler, %function	
 SVC_Handler:
 		# put sp in r0 (passing it as the first argument to SVC_HandlerMain)

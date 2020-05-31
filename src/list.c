@@ -5,10 +5,11 @@
  *      Author: DiaaEldeen
  */
 
+// This file contains the linked lists (Thread lists) API
 
 #include "list.h"
 
-//insert without changing index !!! !!!
+//insert without changing the index pointer (The next ready thread)
  void listInsertItemLast(list_t* list,OSThread_t* OSThread){
 
 	 if(list->ui32NoOfItems < 1){
@@ -35,6 +36,7 @@
 
 }
 
+ // Insert an item and change the index pointer to point to it (To be picked next when we call listGetItem)
 void listInsertItem(list_t* list, OSThread_t* OSThread){
 
 	if(list->ui32NoOfItems < 1){
@@ -61,11 +63,6 @@ void listInsertItem(list_t* list, OSThread_t* OSThread){
 
 }
 
-//void __error__(char *pcFilename, uint32_t ui32Line);
-//void __error__(char *pcFilename, uint32_t ui32Line)
-//{
-//    while(1);
-//}
 
 OSThread_t* listGetItem(list_t* list, OSThread_t* OSThread){
 

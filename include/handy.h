@@ -18,6 +18,10 @@
 //k -> Q normal
 //A -> J AHB
 
+
+void __error__(char *pcFilename, uint32_t ui32Line);
+
+
 #define LED1_ON		GPION_DATA(P1) = P1;
 #define LED1_OFF	GPION_DATA(P1) = 0;
 #define LED2_ON		GPION_DATA(P0) = P0;

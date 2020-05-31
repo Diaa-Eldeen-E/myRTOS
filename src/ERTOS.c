@@ -32,7 +32,7 @@ void OS_idleThread(){
 }
 
 //
-void SysTick_Handler(){
+void SysTick_Handler() {
 
 	++ui32SysTicks;
 	SysTick->CTRL |= 1;
@@ -47,7 +47,7 @@ void SysTick_Handler(){
 
 
 
-void OS_run(){
+void OS_run() {
 
 	OS_sched();
 
@@ -77,11 +77,11 @@ void OS_run(){
 }
 
 
-void OS_sched(){
+void OS_sched() {
 
 	//decide the running thread from the ready list
 	uint32_t i=0;
-	for(i=0; i<PRIORITY_LEVELS; ++i){
+	for(i=0; i<PRIORITY_LEVELS; ++i) {
 
 		if(readyList[i].ui32NoOfItems > 0)
 			break;
@@ -91,12 +91,9 @@ void OS_sched(){
 		while(1);
 
 	//insert the last running thread back into the ready list before switching
-	if(ptRunning != NULL){
+	if(ptRunning != NULL) {
 		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptRunning);
 	}
-//	if(ptNext != NULL){
-//		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptNext);
-//	}
 
 	ptNext = listGetItem(&readyList[i], readyList[i].ptIndex);
 
@@ -104,19 +101,19 @@ void OS_sched(){
 }
 
 //add status return
-void SVC_HandlerMain(uint32_t* sp){
+void SVC_HandlerMain(uint32_t* sp) {
 
 	uint8_t ui8SVCNo = *((uint32_t*)((uint32_t) sp[6] - 2));//[-2];
 
 	if(ui8SVCNo == 0){
 		OS_run();
 	}
-	else if(ui8SVCNo == 1){
+	else if(ui8SVCNo == 1) {
 
 		OS_threadCreate((OSThread_t*)sp[0],(uint32_t*) sp[1], sp[2], sp[3]);	//another argument to be added
 	}
 
-	else{
+	else {
 		while(1);
 	}
 
@@ -126,7 +123,7 @@ void SVC_HandlerMain(uint32_t* sp){
 }
 //
 	//another argument to be added
-static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty){
+static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty) {
 
 	static uint32_t ui32NoOfThreads =0;
 
@@ -193,11 +190,11 @@ static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, 
 
 
 
-void OS_init(uint32_t* sp, uint32_t stkSize){
+void OS_init(uint32_t* sp, uint32_t stkSize) {
 
 	//initialize lists (ready list, waiting list)
 	uint32_t i;
-	for(i=0; i<PRIORITY_LEVELS; ++i){
+	for(i=0; i<PRIORITY_LEVELS; ++i) {
 		listInit(&readyList[i]);
 	}
 

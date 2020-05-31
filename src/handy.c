@@ -8,7 +8,12 @@
 
 #include "handy.h"
 
-void clock_setup_MO(uint8_t freq){
+void __error__(char *pcFilename, uint32_t ui32Line) {
+    while(1);
+}
+
+
+void clock_setup_MO(uint8_t freq) {
 
 	SYSCTL->MOSCCTL = 0x10;	//settings for connected MOSC
 	while( !(SYSCTL->RIS & BIT8) );	//w8 until the MOSC  stabilize
@@ -53,7 +58,7 @@ void clock_setup_MO(uint8_t freq){
 }
 
 
-void clock_setup_PIO(uint8_t freq){
+void clock_setup_PIO(uint8_t freq) {
 
 	SYSCTL->MOSCCTL = 0x10;	//settings for connected MOSC
 	if(freq == 0 || freq > 120 ) while(1);
@@ -92,7 +97,7 @@ void clock_setup_PIO(uint8_t freq){
 }
 
 
-void blink_EK_LED(){
+void blink_EK_LED() {
 
 	LEDs_EK_setup();
 
@@ -105,8 +110,7 @@ void blink_EK_LED(){
 	}
 }
 
-void LEDs_EK_setup()
-{
+void LEDs_EK_setup() {
 
 	SYSCTL->RCGCGPIO |= PORTF | PORTN;
 	delay_us(1);
@@ -121,7 +125,8 @@ void LEDs_EK_setup()
 }
 
 
-void buttons_EK_setup(){
+void buttons_EK_setup() {
+
 	SYSCTL->RCGCGPIO |= PORTJ;
 	delay_us(1);
 
@@ -140,10 +145,10 @@ void buttons_EK_setup(){
 }
 
 // this function reverses the order of a number of bytes (length) starting from the address (src)
-char* reverse(char* src,uint8_t length)
-{
-	char temp=0,i;
-	for (i=0;i<length/2;i++)
+char* reverse(char* src,uint8_t length) {
+
+	char temp = 0, i;
+	for (i=0; i<length/2; i++)
 		{
 			temp = *(src+i);
 			*(src+i) = *(src+length-i-1);
@@ -156,15 +161,17 @@ char* reverse(char* src,uint8_t length)
 
 // this function converts a 4-byte signed integer (num) to
 //its ASCI char array (str) in a numeric system (base)
-void itoa(int32_t num, char* str, uint32_t base)
-{
+void itoa(int32_t num, char* str, uint32_t base) {
+
 	uint8_t counter= 0;    //this counts the number of digits
-    uint8_t sign =0;
+    uint8_t sign = 0;
 
-    if (num<0 && base==10) { sign =1; num*=-1; }
+    if (num<0 && base==10) {
+    	sign = 1;
+    	num *= -1;
+    }
 
-    do
-    {
+    do {
     	if (num%base > 9) //for base 16
     		*(str+counter++) = (num%base) - 10 + 'A';  //transform the numbers (10,11,12,13,14,15) to (A,B,C,D,E,F)
 
@@ -174,7 +181,9 @@ void itoa(int32_t num, char* str, uint32_t base)
     }
     while(num>0);
 
-    if (sign==1) *(str+counter++)= '-';
+    if (sign==1)
+    	*(str+counter++)= '-';
+
     reverse(str,counter);
     *(str+counter)= 0;   //null character
 }
@@ -183,17 +192,17 @@ void itoa(int32_t num, char* str, uint32_t base)
 
 // this function converts a 4-byte unsigned integer (num) to
 //its ASCI char array (str) in a numeric system (base)
-void utoa(uint32_t num, char* str, uint32_t base)
-{
+void utoa(uint32_t num, char* str, uint32_t base) {
+
 	uint8_t counter= 0;    //this counts the number of digits
 
-    do
-    {
+    do {
 		if (num%base > 9) //for base 16
     		*(str+counter) = (num%base) - 10 + 'A';  //transform the numbers (10,11,12,13,14,15) to (A,B,C,D,E,F)
 
         else
 			*(str+counter) = num % base + '0' ;   //add the '0' to convert the digit into ASCI
+
 		num /=base;
         counter++;
     }
@@ -204,11 +213,12 @@ void utoa(uint32_t num, char* str, uint32_t base)
 }
 
 
-//this function converts float number to an to its ASCI char array, the float can hold nearly 8 digits at max
-//more digits will cause lack of precision, so the string passed size typically should be 10
-void ftoa (float num,uint8_t precision,char *str)  //requires 2048 stack size
-{
-	switch (precision){
+// This function converts float number to an to its ASCI char array, the float can hold nearly 8 digits at max
+// more digits will cause lack of precision, so the string passed size typically should be 10
+// To function correctly it requires 2048 stack size or more
+void ftoa (float num,uint8_t precision,char *str) {
+
+	switch (precision) {
 	case 1:
 		sprintf(str, "%.1f", num);
 		break;
@@ -234,8 +244,8 @@ void ftoa (float num,uint8_t precision,char *str)  //requires 2048 stack size
 }
 
 
-void delay_ms(uint_fast16_t ms)
-{
+void delay_ms(uint_fast16_t ms) {
+
 	SYSCTL->RCGCTIMER |= TIMER_delay_bit;
 	++ms;--ms;	//some time to stabilize the clock
 
@@ -249,16 +259,15 @@ void delay_ms(uint_fast16_t ms)
 	TIMER_delay->ICR |= BIT0;
 	TIMER_delay->CTL |= BIT0;	//enable timer after all configuration
 
-	while(ms--)
-	{
-		while ( !(TIMER_delay->RIS & BIT0) );
+	while(ms--) {
+		while ( !(TIMER_delay->RIS & BIT0) );	// 1 ms passed, restart
 		TIMER_delay->ICR |= BIT0;
 	}
 }
 
 
-void delay_us(uint_fast16_t us)
-{
+void delay_us(uint_fast16_t us) {
+
 	SYSCTL->RCGCTIMER |= TIMER_delay_bit;
 	++us;--us;	//some time to stabilize the clock
 
@@ -271,9 +280,8 @@ void delay_us(uint_fast16_t us)
 	TIMER_delay->ICR |= BIT0;
 	TIMER_delay->CTL |= BIT0;	//enable timer after all configuration
 
-	while(us--)
-	{
-		while ( !(TIMER_delay->RIS & BIT0) );
+	while(us--) {
+		while ( !(TIMER_delay->RIS & BIT0) );	// 1 us passed, start again
 		TIMER_delay->ICR |= BIT0;
 	}
 	TIMER_delay->CTL =0;	//disable the timer
