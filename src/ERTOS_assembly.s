@@ -18,15 +18,28 @@ lrTempAddr:		.word	lrTemp
 		.global	SVC_Handler
 		.global	PendSV_Handler
 		.global	OS_SVC_run
+		.global	OS_SVC_yield
+		.global	OS_SVC_delay
 		
 OS_SVC_run:
 		svc	#0
 infLoop:
 		b infLoop
 		
+		
 OS_SVC_threadCreate:
 		svc	#1
 		bx	lr
+		
+
+OS_SVC_delay:
+		svc #2
+		bx lr
+		
+
+OS_SVC_yield:
+		svc #100
+		bx lr
 		
 
 # It causes error "Invalid state (arm state)" when we don't use the following line

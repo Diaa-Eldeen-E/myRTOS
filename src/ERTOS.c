@@ -13,12 +13,17 @@ extern void OS_onIdle();
 
 
 list_t readyList[PRIORITY_LEVELS];
-list_t* waitingList;
-OSThread_t* ptRunning = NULL;	///////NULL
-OSThread_t* ptNext = NULL;		///////NULL
+
+list_t xTimeOutList;
+
+
+OSThread_t* ptRunning = NULL;
+OSThread_t* ptNext = NULL;
+
 uint32_t ui32SysTicks = 0;
 
 uint32_t lrTemp;
+
 
 OSThread_t idleThread;
 uint64_t idleStack[40];
@@ -31,16 +36,67 @@ void OS_idleThread(){
 	}
 }
 
-//
-void SysTick_Handler() {
+static void yield() {
+
+	__asm(" cpsid	 i");	// disable_irq();
+	OS_sched();
+	SCB->ICSR |= BIT28;	//pendSV
+	__asm(" cpsie	 i");	//__enable_irq();
+
+}
+
+void OS_delay(uint32_t ui32Ticks) {
+
+
+	__asm(" cpsid	 i");	// disable_irq();
+	// If idle thread -> error
+
+	OS_sched();
+
+	ptRunning->ui32TimeOut = ui32Ticks;
+	listInsertItemLast(&xTimeOutList, listGetItem(&readyList[ptRunning->ui32Priority], ptRunning));
+	SCB->ICSR |= BIT28;	//pendSV
+	__asm(" cpsie	 i");	//__enable_irq();
+}
+
+
+void OS_tick() {
 
 	++ui32SysTicks;
-	SysTick->CTRL |= 1;
-//	OS_tick();
+
+	OSThread_t* iter;
+	iter = &xTimeOutList.tHead;
+
+	uint32_t i=0;
+	for(i=0; i<xTimeOutList.ui32NoOfItems; ++i){
+
+		iter = iter->ptNext;
+
+		// Needs refactoring
+		if(iter->ui32TimeOut > 0) {
+			iter->ui32TimeOut--;
+			if(iter->ui32TimeOut == 0)
+				listInsertItemLast(&readyList[iter->ui32Priority], listGetItem(&xTimeOutList, iter));
+
+		}
+
+	}
+
+}
+
+
+// Operating system timer handler
+void SysTick_Handler() {
+
+	//  SysTick->CTRL |= 1;   was here after ++ui32SysTicks
+
+	OS_tick();
 
 	__asm(" cpsid	 i");
 	OS_sched();
 	__asm(" cpsie	 i");
+
+	SysTick->CTRL |= 1;
 
 	SCB->ICSR |= BIT28;	//pendSV
 }
@@ -72,12 +128,17 @@ void OS_run() {
 
 	ptRunning = ptNext;
 
-	__enable_irq();
+	__asm(" cpsie	 i");	//__enable_irq();
 
 }
 
 
 void OS_sched() {
+
+	//insert the last running thread back into the ready list before switching
+	if(ptRunning != NULL) {
+		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptRunning);
+	}
 
 	//decide the running thread from the ready list
 	uint32_t i=0;
@@ -90,10 +151,6 @@ void OS_sched() {
 	if(i >= PRIORITY_LEVELS)	//No threads found!
 		while(1);
 
-	//insert the last running thread back into the ready list before switching
-	if(ptRunning != NULL) {
-		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptRunning);
-	}
 
 	ptNext = listGetItem(&readyList[i], readyList[i].ptIndex);
 
@@ -105,12 +162,19 @@ void SVC_HandlerMain(uint32_t* sp) {
 
 	uint8_t ui8SVCNo = *((uint32_t*)((uint32_t) sp[6] - 2));//[-2];
 
-	if(ui8SVCNo == 0){
+	if(ui8SVCNo == 0) {
 		OS_run();
-	}
-	else if(ui8SVCNo == 1) {
+
+	} else if(ui8SVCNo == 1) {
 
 		OS_threadCreate((OSThread_t*)sp[0],(uint32_t*) sp[1], sp[2], sp[3]);	//another argument to be added
+
+	} else if(ui8SVCNo == 2) {
+		OS_delay(sp[0]);
+
+	} else if(ui8SVCNo == 100) {
+		yield();
+
 	}
 
 	else {
@@ -197,6 +261,7 @@ void OS_init(uint32_t* sp, uint32_t stkSize) {
 	for(i=0; i<PRIORITY_LEVELS; ++i) {
 		listInit(&readyList[i]);
 	}
+	listInit(&xTimeOutList);
 
 	//create idle thread
 	idleThread.OSThreadHandler = &OS_idleThread;

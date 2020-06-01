@@ -30,12 +30,11 @@ void main1(){
 	while(1){
 		UART_send_stringL("Hello main 1");
 		LED1_ON
-		uint32_t i=0;
-		for(i=0; i<4000000; ++i);
-//		OS_delay(500);
+
+		OS_SVC_delay(500);
 		LED1_OFF
-		for(i=0; i<4000000; ++i);
-//		OS_delay(500);
+
+		OS_SVC_delay(500);
 
 
 	}
@@ -51,10 +50,10 @@ void main2(){
 		LED2_ON
 		uint32_t i=0;
 		for(i=0; i<4000000; ++i);
-//		OS_delay(1000);
+//		OS_SVC_delay(1000);
 		LED2_OFF
 		for(i=0; i<4000000; ++i);
-//		OS_delay(1000);
+//		OS_SVC_delay(1000);
 
 	}
 }
@@ -69,9 +68,9 @@ void main3(){
 		LED3_ON
 		uint32_t i=0;
 		for(i=0; i<1000000; ++i);
-//		OS_delay(250);
+//		OS_SVC_delay(250);
 		LED3_OFF
-//		OS_delay(250);
+//		OS_SVC_delay(250);
 
 	}
 }
@@ -85,7 +84,7 @@ void main4(){
 		UART_send_stringL("Hello main 4");
 		uint32_t i=0;
 		for(i=0; i<1000000; ++i);
-//		OS_delay(500);
+//		OS_SVC_delay(500);
 	}
 }
 
@@ -108,7 +107,7 @@ int main(void) {
 	UART_initialize_polling();
 	UART_send_stringL("UART initialized successfully");
 
-
+//	SCnSCB->ACTLR |= BIT1;	//Disable write buffer to make the imprecise faults precise
 
 //	delay_timer_init();
 //	delay_time(500);

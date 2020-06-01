@@ -16,29 +16,18 @@
 
 
 
-
-
-//typedef struct {
-//	uint32_t ui32ThreadID;
-//
-//	uint32_t* sp;
-//
-//	OSThreadHandler_t OSThreadHandler;
-//
-//	listItem_t item;
-//
-//	uint32_t ui32TimeOut;
-//
-//	uint32_t ui32Priority;
-//
-//}OSThread_t;
-
+extern void OS_SVC_delay();
+extern void OS_SVC_yield();
 extern void OS_SVC_run();
+extern void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
 
+void OS_delay(uint32_t ui32Ticks);
 void OS_run();
+void OS_tick();
+
 void OS_sched();
 //void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
-void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
+
 void OS_init();
 
 #endif /* ERTOS_H_ */
