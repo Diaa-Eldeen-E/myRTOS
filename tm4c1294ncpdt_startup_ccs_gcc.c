@@ -23,6 +23,7 @@
 //*****************************************************************************
 
 #include <stdint.h>
+#include "TM4C1294NCPDT.h"
 
 //*****************************************************************************
 //
@@ -42,6 +43,22 @@ extern void TIMER6_Handler();
 #ifndef HWREG
 #define HWREG(x) (*((volatile uint32_t *)(x)))
 #endif
+
+
+
+typedef struct __attribute__((packed)) ContextStateFrame {
+
+	uint32_t non;
+	uint32_t r0;
+	uint32_t r1;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r12;
+	uint32_t lr;
+	uint32_t return_address;
+	uint32_t xpsr;
+} sContextStateFrame;
+
 
 //*****************************************************************************
 //
@@ -300,16 +317,42 @@ NmiSR(void)
 // for examination by a debugger.
 //
 //*****************************************************************************
-static void
-FaultISR(void)
-{
-    //
-    // Enter an infinite loop.
-    //
-    while(1)
-    {
-    }
+static void FaultISR(void) {
+
+	__asm(
+			"tst lr, #4 \n"		\
+			"ite eq \n"			\
+			"mrseq r0, msp \n"	\
+			"mrsne r0, psp \n"	\
+			"b myFaultISR \n"	\
+			);
+
+
+	while(1);	// Enter an infinite loop.
 }
+
+static void myFaultISR(sContextStateFrame* frame) {
+
+	// Debug steps
+	// First Read the fault register and determine what kind of error happened
+
+	//read the fault register
+	uint32_t ui32FaultNum = SCB->CFSR;
+
+
+	// if imprecise
+	if(ui32FaultNum & BIT10) {
+
+		while(1);	// Enter an infinite loop.
+
+		// Insert this to make it precise (Must be inserted before the code that caused the problem)
+//		SCnSCB->ACTLR |= BIT1;	//Disable write buffer to make the imprecise faults precise
+
+	}
+
+	while(1);	// Enter an infinite loop.
+}
+
 
 //*****************************************************************************
 //
@@ -318,9 +361,10 @@ FaultISR(void)
 // for examination by a debugger.
 //
 //*****************************************************************************
-static void
-IntDefaultHandler(void)
-{
+static void IntDefaultHandler(void) {
+
+	uint8_t ui8ISRNum = SCB->ICSR;	// This holds which interrupt has occurred
+
     //
     // Go into an infinite loop.
     //
