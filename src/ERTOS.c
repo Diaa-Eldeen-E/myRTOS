@@ -39,6 +39,7 @@ void OS_idleThread(){
 static void yield() {
 
 	__asm(" cpsid	 i");	// disable_irq();
+	listInsertItemLast(&readyList[ptRunning->ui32Priority], ptRunning);
 	OS_sched();
 	SCB->ICSR |= BIT28;	//pendSV
 	__asm(" cpsie	 i");	//__enable_irq();
@@ -49,12 +50,15 @@ void OS_delay(uint32_t ui32Ticks) {
 
 
 	__asm(" cpsid	 i");	// disable_irq();
-	// If idle thread -> error
+
+	// Calling OS_delay from idle thread causes  error
+	if(ptRunning->ui32ThreadID == 0)
+		while(1);
 
 	OS_sched();
 
 	ptRunning->ui32TimeOut = ui32Ticks;
-	listInsertItemLast(&xTimeOutList, listGetItem(&readyList[ptRunning->ui32Priority], ptRunning));
+	listInsertItemLast(&xTimeOutList, ptRunning);
 	SCB->ICSR |= BIT28;	//pendSV
 	__asm(" cpsie	 i");	//__enable_irq();
 }
@@ -64,20 +68,21 @@ void OS_tick() {
 
 	++ui32SysTicks;
 
-	OSThread_t* iter;
-	iter = &xTimeOutList.tHead;
-
+	// Iterate over all tasks in the time out list
+	OSThread_t* iter = &xTimeOutList.tHead;
 	uint32_t i=0;
 	for(i=0; i<xTimeOutList.ui32NoOfItems; ++i){
 
 		iter = iter->ptNext;
 
-		// Needs refactoring
+		// Reduce the time out period and when it is over move the task to the ready list
 		if(iter->ui32TimeOut > 0) {
 			iter->ui32TimeOut--;
 			if(iter->ui32TimeOut == 0)
 				listInsertItemLast(&readyList[iter->ui32Priority], listGetItem(&xTimeOutList, iter));
 
+		} else {
+			listInsertItemLast(&readyList[iter->ui32Priority], listGetItem(&xTimeOutList, iter));
 		}
 
 	}
@@ -88,17 +93,27 @@ void OS_tick() {
 // Operating system timer handler
 void SysTick_Handler() {
 
-	//  SysTick->CTRL |= 1;   was here after ++ui32SysTicks
-
 	OS_tick();
 
-	__asm(" cpsid	 i");
-	OS_sched();
-	__asm(" cpsie	 i");
+	/* If the current task time slot ended
+	 * Switch to the next ready task
+	 */
+	if(ui32SysTicks % TIME_SLOT == 0) {
 
-	SysTick->CTRL |= 1;
+		__asm(" cpsid	 i");
 
-	SCB->ICSR |= BIT28;	//pendSV
+		//insert the last running thread back into the ready list before switching
+		if(ptRunning != NULL) {
+			listInsertItemLast(&readyList[ptRunning->ui32Priority], ptRunning);
+		}
+
+		OS_sched();
+		__asm(" cpsie	 i");
+
+		SCB->ICSR |= BIT28;	//pendSV
+	}
+
+	SysTick->CTRL |= 1;		// Start the timer
 }
 
 
@@ -135,26 +150,17 @@ void OS_run() {
 
 void OS_sched() {
 
-	//insert the last running thread back into the ready list before switching
-	if(ptRunning != NULL) {
-		listInsertItemLast(&readyList[ptRunning->ui32Priority], ptRunning);
-	}
-
-	//decide the running thread from the ready list
+	// Determine the highest priority non-empty queue in the ready list
 	uint32_t i=0;
-	for(i=0; i<PRIORITY_LEVELS; ++i) {
-
+	for(i=0; i<PRIORITY_LEVELS; ++i)
 		if(readyList[i].ui32NoOfItems > 0)
 			break;
 
-	}
 	if(i >= PRIORITY_LEVELS)	//No threads found!
 		while(1);
 
 
 	ptNext = listGetItem(&readyList[i], readyList[i].ptIndex);
-
-
 }
 
 //add status return
@@ -211,7 +217,6 @@ static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, 
 
 	sp -= 16 * FPU_ENABLED;	//fpu manual context (s16-s31)
 
-
 	*(--sp) = 0xBU;	//R11
 	*(--sp) = 0xAU;	//R10
 	*(--sp) = 0x9U;	//R9
@@ -222,10 +227,7 @@ static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, 
 	*(--sp) = 0x4U;	//R4
 
 	*(--sp) = 0x3U;	//control
-
-
 	*(--sp) = 0xFFFFFFED | ((!FPU_ENABLED) << 4);	//Exception return,	( (fpu/no-fpu), non prev, psp)
-
 
 
 	me->sp = sp;
@@ -233,13 +235,7 @@ static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, 
 	me->ui32Priority = ui32Priorty;
 	me->ui32TimeOut = 0;
 
-//	me->item.ui32ThreadID = ui32NoOfThreads++;
-
 	listInsertItem(&readyList[ui32Priorty], me);
-
-
-
-
 }
 
 //#pragma FUNC_ALWAYS_INLINE(OS_SVC_threadCreate)
