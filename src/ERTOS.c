@@ -256,7 +256,7 @@ void OS_init(uint32_t* sp, uint32_t stkSize) {
 	idleThread.OSThreadHandler = &OS_idleThread;
 
 	SysTick->CTRL |= BIT0 | BIT1;	// Enable timer and interrupt (4MHz clock)
-	SysTick->LOAD = 3999;	// 1 ms
+	SysTick->LOAD = (TICK_PERIOD_MS * (4000000UL/1000)) -1;	// (4M / 1000) = 1 ms counts
 
 	__NVIC_SetPriority(SVCall_IRQn, 0);
 	__NVIC_SetPriority(SYSCTL_IRQn, 4);
