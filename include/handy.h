@@ -20,7 +20,7 @@
 
 
 // ASSERT
-#define  ASSERT_(expr)	((expr) ? (void)0 : error_(__FILE__, __LINE__))
+#define  ASSERT_TRUE(expr)	((expr) ? (void)0 : error_(__FILE__, __LINE__))
 
 void error_(char *pcFilename, uint32_t ui32Line);
 

@@ -150,9 +150,7 @@ void OS_sched() {
 		if(readyList[i].ui32NoOfItems > 0)
 			break;
 
-	if(i >= PRIORITY_LEVELS)	//No threads found!
-		while(1);
-
+	ASSERT_TRUE(i < PRIORITY_LEVELS);
 
 	ptNext = listGetItem(&readyList[i], readyList[i].ptIndex);
 }
@@ -189,8 +187,7 @@ static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, 
 	static uint32_t ui32NoOfThreads =0;
 
 	// check stack alignment
-	if(ui32StkSize % 8 !=0)
-		while(1);
+	ASSERT_TRUE(ui32StkSize % 8 ==0);
 
 	// set SP to the right point
 	// divide SP by 8 and multiply by 8 for 8-byte stack alignment
@@ -245,14 +242,14 @@ static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, 
 
 void OS_init(uint32_t* sp, uint32_t stkSize) {
 
-	//initialize lists (ready list, waiting list)
+	// Initialize lists (ready list, waiting list)
 	uint32_t i;
 	for(i=0; i<PRIORITY_LEVELS; ++i) {
 		listInit(&readyList[i]);
 	}
 	listInit(&xTimeOutList);
 
-	//create idle thread
+	// Create idle thread
 	idleThread.OSThreadHandler = &OS_idleThread;
 
 	SysTick->CTRL |= BIT0 | BIT1;	// Enable timer and interrupt (4MHz clock)

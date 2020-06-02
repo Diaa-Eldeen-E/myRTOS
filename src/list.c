@@ -66,9 +66,7 @@ void listInsertItem(list_t* list, OSThread_t* OSThread){
 
 OSThread_t* listGetItem(list_t* list, OSThread_t* OSThread){
 
-	//check the no of OSThreads > 0
-	if(list->ui32NoOfItems < 1)
-		while(1);
+	ASSERT_TRUE(list->ui32NoOfItems >= 1);
 
 	OSThread->ptNext->ptPrev = OSThread->ptPrev;
 	OSThread->ptPrev->ptNext = OSThread->ptNext;
@@ -80,77 +78,11 @@ OSThread_t* listGetItem(list_t* list, OSThread_t* OSThread){
 	return OSThread;
 }
 
+
+
 void listInit(list_t* list){
 
-
-	list->ui32NoOfItems = 0;	//convention?
-
+	list->ui32NoOfItems = 0;
 	list->ptIndex = &list->tHead;
-
-
 }
 
-
-
-
-
-
-
-//
-//void listInsertItemLast(list_t* list, listItem_t* item){
-//
-//	list->liHead.pliPrev->pliNext = item;
-//	list->liHead.pliPrev = item;
-//
-//	list->ui32NoOfItems++;
-//
-//
-//}
-//
-//void listInsertItem(list_t* list, listItem_t* item){
-//
-//	if(list->ui32NoOfItems < 1){
-//
-//		list->liHead.pliNext = item;
-//		list->liHead.pliPrev = item;
-//		list->pliIndex = item;
-//		item->pliNext = &list->liHead;
-//		item->pliPrev = &list->liHead;
-//
-//	}
-//	else{
-//		list->pliIndex->pliNext->pliPrev = item;
-//
-//		item->pliNext = list->pliIndex->pliNext;
-//		item->pliPrev = list->pliIndex;
-//
-//		list->pliIndex->pliNext = item;
-//		list->pliIndex = item;	//change index ??
-//
-//	}
-//	list->ui32NoOfItems++;
-//
-//
-//}
-//
-//listItem_t* listGetItem(list_t* list, listItem_t* item){
-//
-//	//check the no of items > 0
-//	item->pliNext->pliPrev = item->pliPrev;
-//	item->pliPrev = item->pliNext;
-//
-//	list->ui32NoOfItems--;
-//
-//	return item;
-//}
-//
-//void listInit(list_t* list){
-//
-//
-//	list->ui32NoOfItems = 0;	//convention?
-//
-//	list->pliIndex = &list->liHead;
-//
-//
-//
-//}
