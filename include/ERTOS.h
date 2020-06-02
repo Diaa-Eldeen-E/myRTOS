@@ -17,7 +17,6 @@
 
 
 extern void OS_SVC_delay();
-extern void OS_SVC_yield();
 extern void OS_SVC_run();
 extern void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
 
