@@ -5,12 +5,18 @@
  *      Author: DiaaEldeen
  */
 
+
 // This file contains the linked lists (Thread lists) API
+
 
 #include "list.h"
 
-//insert without changing the index pointer (The next ready thread)
- void listInsertItemLast(list_t* list,OSThread_t* OSThread){
+
+
+// insert without changing the index pointer (The next ready thread)
+ void listInsertItemLast(list_t* list, OSThread_t* OSThread) {
+
+	 ASSERT_TRUE(list != NULL && OSThread != NULL);
 
 	 if(list->ui32NoOfItems < 1){
 
@@ -28,16 +34,15 @@
 		 OSThread->ptPrev = list->ptIndex;
 
 		 list->ptIndex->ptNext = OSThread;
-//		 list->ptIndex = OSThread;	//change index ??
-
 	 }
+
 	 list->ui32NoOfItems++;
-
-
 }
 
  // Insert an item and change the index pointer to point to it (To be picked next when we call listGetItem)
 void listInsertItem(list_t* list, OSThread_t* OSThread){
+
+	ASSERT_TRUE(list != NULL && OSThread != NULL);
 
 	if(list->ui32NoOfItems < 1){
 
@@ -66,6 +71,7 @@ void listInsertItem(list_t* list, OSThread_t* OSThread){
 
 OSThread_t* listGetItem(list_t* list, OSThread_t* OSThread){
 
+	ASSERT_TRUE(list != NULL && OSThread != NULL);
 	ASSERT_TRUE(list->ui32NoOfItems >= 1);
 
 	OSThread->ptNext->ptPrev = OSThread->ptPrev;
@@ -81,6 +87,8 @@ OSThread_t* listGetItem(list_t* list, OSThread_t* OSThread){
 
 
 void listInit(list_t* list){
+
+	ASSERT_TRUE(list != NULL);
 
 	list->ui32NoOfItems = 0;
 	list->ptIndex = &list->tHead;

@@ -18,13 +18,29 @@ void error_(char *pcFilename, uint32_t ui32Line) {
     while(1);
 }
 
+// Warning handler used for debugging
+void warn_(char *pcFilename, uint32_t ui32Line) {
+
+	if(TREAT_WARNING_AS_ERROR) {
+
+		DISABLE_IRQ;
+		while(1);
+
+	}
+
+#if TREAT_WARNING_AS_ERROR == 0
+#warning A warning may occur, set the TREAT_WARNING_AS_ERROR flag to see it
+#endif
+
+}
 
 // Use Main oscillator as the PLL source (More stable)
 void clock_setup_MOSC(uint8_t freq) {
 
 	SYSCTL->MOSCCTL = 0x10;	//settings for connected MOSC
 	while( !(SYSCTL->RIS & BIT8) );	//w8 until the MOSC  stabilize
-	if(freq == 0 || freq > 96 ) while(1);	//96*5 = 480 (max Fvco)
+
+	ASSERT_TRUE(freq > 0 && freq <= 96 );	//96*5 = 480 (max Fvco)
 
 	//memory timing setting
 	if(freq <= 16)						SYSCTL->MEMTIM0 = 0x00300030;
@@ -69,7 +85,8 @@ void clock_setup_MOSC(uint8_t freq) {
 void clock_setup_PIOSC(uint8_t freq) {
 
 	SYSCTL->MOSCCTL = 0x10;	//settings for connected MOSC
-	if(freq == 0 || freq > 120 ) while(1);
+
+	ASSERT_TRUE(freq > 0 && freq <= 120 );
 
 	//memory timing setting
 	if(freq <= 16)						SYSCTL->MEMTIM0 = 0x00300030;
@@ -123,7 +140,8 @@ void blink_EK_LED() {
 void LEDs_EK_setup() {
 
 	SYSCTL->RCGCGPIO |= PORTF | PORTN;
-	delay_us(1);
+	while( !(SYSCTL->PRGPIO & PORTF));	// W8 until peripheral is ready
+	while( !(SYSCTL->PRGPIO & PORTN));
 
 	//PORTF LEDS
 	GPIOF_AHB->DEN |= P0 | P4;
@@ -139,7 +157,7 @@ void LEDs_EK_setup() {
 void buttons_EK_setup() {
 
 	SYSCTL->RCGCGPIO |= PORTJ;
-	delay_us(1);
+	while( !(SYSCTL->PRGPIO & PORTJ));	// W8 until peripheral is ready
 
 	GPIO_button->DEN |= P0 | P1;
 	GPIO_button->DIR &= ~(P0 | P1);
@@ -228,7 +246,7 @@ void utoa(uint32_t num, char* str, uint32_t base) {
 // This function converts float number to an to its ASCI char array, the float can hold nearly 8 digits at max
 // more digits will cause lack of precision, so the string passed size typically should be 10
 // To function correctly it requires 2048 stack size or more
-void ftoa (float num,uint8_t precision,char *str) {
+void ftoa (float num, uint8_t precision, char *str) {
 
 	switch (precision) {
 	case 1:
@@ -259,7 +277,7 @@ void ftoa (float num,uint8_t precision,char *str) {
 void delay_ms(uint_fast16_t ms) {
 
 	SYSCTL->RCGCTIMER |= TIMER_delay_bit;
-	++ms;--ms;	//some time to stabilize the clock
+	while( !(SYSCTL->PRTIMER & TIMER_delay_bit));	// W8 until peripheral is ready
 
 	TIMER_delay->CTL &= ~BIT0;	//clear the timer enable before any config
 	TIMER_delay->CFG = 0x04;	//16 bit timer configuration
@@ -281,7 +299,7 @@ void delay_ms(uint_fast16_t ms) {
 void delay_us(uint_fast16_t us) {
 
 	SYSCTL->RCGCTIMER |= TIMER_delay_bit;
-	++us;--us;	//some time to stabilize the clock
+	while( !(SYSCTL->PRTIMER & TIMER_delay_bit));	// W8 until peripheral is ready
 
 	TIMER_delay->CTL &= ~BIT0;	//clear the timer enable before any config
 	TIMER_delay->CFG = 0x04;	//16 bit timer configuration

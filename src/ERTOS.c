@@ -158,7 +158,7 @@ void OS_sched() {
 //add status return
 void SVC_HandlerMain(uint32_t* sp) {
 
-	uint8_t ui8SVCNo = *((uint32_t*)((uint32_t) sp[6] - 2));//[-2];
+	uint8_t ui8SVCNo = *((uint32_t*)((uint32_t) sp[6] - 2));
 
 	if(ui8SVCNo == 0) {
 		OS_run();
@@ -177,8 +177,6 @@ void SVC_HandlerMain(uint32_t* sp) {
 	}
 
 
-
-
 }
 //
 	// another argument to be added
@@ -186,8 +184,10 @@ static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, 
 
 	static uint32_t ui32NoOfThreads =0;
 
-	// check stack alignment
-	ASSERT_TRUE(ui32StkSize % 8 ==0);
+	ASSERT_TRUE(me != NULL && sp != NULL);
+	ASSERT_TRUE(ui32Priorty < PRIORITY_LEVELS);	// Check priority value
+	ASSERT_TRUE(ui32StkSize % 8 == 0);	// check stack alignment
+	ASSERT_TRUE_WARN(ui32StkSize > sizeof(uint32_t) * 40);
 
 	// set SP to the right point
 	// divide SP by 8 and multiply by 8 for 8-byte stack alignment
@@ -253,6 +253,8 @@ void OS_init(uint32_t* sp, uint32_t stkSize) {
 	idleThread.OSThreadHandler = &OS_idleThread;
 
 	SysTick->CTRL |= BIT0 | BIT1;	// Enable timer and interrupt (4MHz clock)
+
+	ASSERT_TRUE(TICK_PERIOD_MS > 0 && (TICK_PERIOD_MS <  0xffffff / (4000000UL/1000) ));
 	SysTick->LOAD = (TICK_PERIOD_MS * (4000000UL/1000)) -1;	// (4M / 1000) = 1 ms counts
 
 	__NVIC_SetPriority(SVCall_IRQn, 0);

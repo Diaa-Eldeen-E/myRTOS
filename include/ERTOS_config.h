@@ -24,7 +24,10 @@
  * Higher period for better performance and lower period for real time response
  * It also could be used for calculating delay periods
  */
-#define TICK_PERIOD_MS	1
+#define TICK_PERIOD_MS	1UL
+
+
+
 
 
 #endif /* ERTOS_CONFIG_H_ */
