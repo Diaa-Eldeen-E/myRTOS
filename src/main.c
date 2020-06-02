@@ -1,4 +1,5 @@
 /*
+ *
  * main.c
  */
 
@@ -10,33 +11,27 @@
 
 
 
-uint32_t F_SysClk = 80000000;
+uint32_t F_SysClk = 80000000UL;
 
 
-volatile uint32_t sysTicks =0;
-
-
-//#define delay_timer	TIMER6
-//#define delay_timer_bit	BIT6
-//#define delay_timer_irq	TIMER6A_IRQn
-//void delay_timer_init();
-//#define delay_time(duration)	delay_timer->TAILR = (F_SysClk / 1000) * duration
+#define delay_timer	TIMER6
+#define delay_timer_bit	BIT6
+#define delay_timer_irq	TIMER6A_IRQn
+void delay_timer_init();
+#define delay_time(duration)	delay_timer->TAILR = (F_SysClk / 1000) * duration
 
 // Thread 1
 uint32_t stack1[80];
 OSThread_t blinky1;
-void main1(){
+void main1() {
 
-	while(1){
+	while(1) {
+
 		UART_send_stringL("Hello main 1");
 		LED1_ON
-
 		OS_SVC_delay(500);
 		LED1_OFF
-
 		OS_SVC_delay(500);
-
-
 	}
 }
 
@@ -102,10 +97,13 @@ void OS_onIdle(){
 int main(void) {
 
 	// Hardware initialization
-	clock_setup_MO(F_SysClk/1000000UL);
+	clock_setup_MOSC(F_SysClk/1000000UL);
 	LEDs_EK_setup();
 	UART_initialize_polling();
+
 	UART_send_stringL("UART initialized successfully");
+
+
 
 //	SCnSCB->ACTLR |= BIT1;	//Disable write buffer to make the imprecise faults precise
 
@@ -113,7 +111,7 @@ int main(void) {
 //	delay_time(500);
 //	delay_timer->CTL |= BIT0;
 
-
+//	__assert();
 	OS_init(stack0, sizeof(stack0));
 
 
@@ -142,19 +140,21 @@ int main(void) {
 
 
 
-//void delay_timer_init(){
-//
-//	SYSCTL->RCGCTIMER |= delay_timer_bit;
-//	delay_us(1);
-//
-//	delay_timer->CTL =0;
-//	delay_timer->CFG = 0x0;
-//	delay_timer->TAMR = 0x1 | BIT4 ;	//count up, one shot
-//	delay_timer->IMR |= BIT0;
+
+void delay_timer_init(){
+
+	SYSCTL->RCGCTIMER |= delay_timer_bit;
+	delay_us(1);
+
+	delay_timer->CTL =0;	//Disable the timer before config
+	delay_timer->CFG = 0x0;		//32-bit timer
+	delay_timer->TAMR = 0x1 | BIT4 ;	// one shot, count up
+	delay_timer->IMR |= BIT0;
+
 //	__NVIC_EnableIRQ(delay_timer_irq);
-//	//__enable_irq();
-//	delay_timer->CTL |= BIT1 ;
-//}
+	//__enable_irq();
+	delay_timer->CTL |= BIT1 ;	//Enable stall
+}
 
 void TIMER6_Handler(){
 //	GPIOF_DATA(P0) ^= P0;

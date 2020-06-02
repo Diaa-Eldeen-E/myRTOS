@@ -36,15 +36,7 @@ void OS_idleThread(){
 	}
 }
 
-static void yield() {
 
-	__asm(" cpsid	 i");	// disable_irq();
-	listInsertItemLast(&readyList[ptRunning->ui32Priority], ptRunning);
-	OS_sched();
-	SCB->ICSR |= BIT28;	//pendSV
-	__asm(" cpsie	 i");	//__enable_irq();
-
-}
 
 void OS_delay(uint32_t ui32Ticks) {
 
@@ -89,21 +81,13 @@ void OS_tick() {
 
 }
 
-volatile uint32_t ts = 0;
+
 
 // Operating system timer handler
 void SysTick_Handler() {
 
+	SysTick->CTRL |= 1;		// Clear the flag and Start counting again
 	OS_tick();
-
-	if(ui32SysTicks % 2 == 0)
-		ts = delay_timer->TAR;
-	else
-		ts = delay_timer->TAR - ts;
-
-	if(ui32SysTicks % 1000 == 0)
-		UART_send_stringL("Tick Tick");
-
 
 	/* If the current task time slot ended
 	 * Switch to the next ready task
@@ -123,7 +107,6 @@ void SysTick_Handler() {
 		SCB->ICSR |= BIT28;	//pendSV
 	}
 
-	SysTick->CTRL |= 1;		// Start the timer
 }
 
 
@@ -188,9 +171,6 @@ void SVC_HandlerMain(uint32_t* sp) {
 
 	} else if(ui8SVCNo == 2) {
 		OS_delay(sp[0]);
-
-	} else if(ui8SVCNo == 100) {
-		yield();
 
 	}
 
@@ -275,8 +255,8 @@ void OS_init(uint32_t* sp, uint32_t stkSize) {
 	//create idle thread
 	idleThread.OSThreadHandler = &OS_idleThread;
 
-	SysTick->CTRL |= BIT1 | BIT0;	//enable timer and interrupt (4MHz clock)
-	SysTick->LOAD = 3999;	//1ms
+	SysTick->CTRL |= BIT0 | BIT1;	// Enable timer and interrupt (4MHz clock)
+	SysTick->LOAD = 3999;	// 1 ms
 
 	__NVIC_SetPriority(SVCall_IRQn, 0);
 	__NVIC_SetPriority(SYSCTL_IRQn, 4);
