@@ -42,8 +42,8 @@ extern uint32_t F_SysClk;
 #define us_LOAD_VALUE	F_SysClk / 1000000
 
 
-void clock_setup_MO(uint8_t freq);
-void clock_setup_PIO(uint8_t freq);
+void clock_setup_MOSC(uint8_t freq);
+void clock_setup_PIOSC(uint8_t freq);
 
 void blink_EK_LED();
 void LEDs_EK_setup();

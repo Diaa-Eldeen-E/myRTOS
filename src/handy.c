@@ -8,12 +8,15 @@
 
 #include "handy.h"
 
+//ASSERT
+
 void __error__(char *pcFilename, uint32_t ui32Line) {
     while(1);
 }
 
 
-void clock_setup_MO(uint8_t freq) {
+// Use Main oscillator as the PLL source (More stable)
+void clock_setup_MOSC(uint8_t freq) {
 
 	SYSCTL->MOSCCTL = 0x10;	//settings for connected MOSC
 	while( !(SYSCTL->RIS & BIT8) );	//w8 until the MOSC  stabilize
@@ -58,7 +61,8 @@ void clock_setup_MO(uint8_t freq) {
 }
 
 
-void clock_setup_PIO(uint8_t freq) {
+// Use Precision internal oscillator as the PLL source
+void clock_setup_PIOSC(uint8_t freq) {
 
 	SYSCTL->MOSCCTL = 0x10;	//settings for connected MOSC
 	if(freq == 0 || freq > 120 ) while(1);
@@ -78,18 +82,18 @@ void clock_setup_PIO(uint8_t freq) {
 	if (freq == 1) {
 		freq = 6;
 		SYSCTL->PLLFREQ0 |= freq;	//multiplier (4MHz * freq)
-		SYSCTL->RSCLKCFG = 0xd3000017; 	//divide VCO by 24
+		SYSCTL->RSCLKCFG = 0xd0000017; 	//divide VCO by 24
 	}else if (freq == 2) {
 		freq = 6;
 		SYSCTL->PLLFREQ0 |= freq;	//multiplier (4MHz * freq)
-		SYSCTL->RSCLKCFG = 0xd300000b; 	//divide VCO by 12
+		SYSCTL->RSCLKCFG = 0xd000000b; 	//divide VCO by 12
 	}else if (freq == 3) {
 		freq = 6;
 		SYSCTL->PLLFREQ0 |= freq;	//multiplier (4MHz * freq)
-		SYSCTL->RSCLKCFG = 0xd3000007; 	//divide VCO by 8
+		SYSCTL->RSCLKCFG = 0xd0000007; 	//divide VCO by 8
 	}else {
 		SYSCTL->PLLFREQ0 |= freq;	//multiplier (4MHz * freq)
-		SYSCTL->RSCLKCFG = 0xd3000003; //MEMTIM & PLLFREQ update, use PLL, MOSC, divide VCO by 4
+		SYSCTL->RSCLKCFG = 0xd0000003; //MEMTIM & PLLFREQ update, use PLL, PIOSC, divide VCO by 4
 	}
 
 	SYSCTL->PLLFREQ0 |= BIT23;	//power up the PLL
@@ -97,19 +101,21 @@ void clock_setup_PIO(uint8_t freq) {
 }
 
 
+// Blink LED 1 in the Tiva C Launchpad board
 void blink_EK_LED() {
 
 	LEDs_EK_setup();
 
 	while(1){
-	LED1_ON
-	delay_ms(500);
-	LED1_OFF
-	delay_ms(500);
 
+		LED1_ON
+		delay_ms(500);
+		LED1_OFF
+		delay_ms(500);
 	}
 }
 
+// Configure the 4 LEDS pins in the Tiva C Launchpad board
 void LEDs_EK_setup() {
 
 	SYSCTL->RCGCGPIO |= PORTF | PORTN;
@@ -125,6 +131,7 @@ void LEDs_EK_setup() {
 }
 
 
+// Configure the 2 buttons in the Tiva C Launchpad board (enables edge interrupts)
 void buttons_EK_setup() {
 
 	SYSCTL->RCGCGPIO |= PORTJ;
@@ -143,6 +150,7 @@ void buttons_EK_setup() {
 	GPIO_button->IM |= P0 | P1;		//enable interrupts
 	NVIC_EnableIRQ(GPIOJ_IRQn);		//enable interrupt in NVIC
 }
+
 
 // this function reverses the order of a number of bytes (length) starting from the address (src)
 char* reverse(char* src,uint8_t length) {
