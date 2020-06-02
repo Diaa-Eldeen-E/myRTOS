@@ -351,6 +351,8 @@ static void myFaultISR(sContextStateFrame* frame) {
 	}
 
 	while(1);	// Enter an infinite loop.
+
+	myFaultISR(frame);	//just to remove the warning (unused symbol)
 }
 
 
@@ -365,6 +367,7 @@ static void IntDefaultHandler(void) {
 
 	uint8_t ui8ISRNum = SCB->ICSR;	// This holds which interrupt has occurred
 
+	ui8ISRNum *= 1;	//Just for removing the warning
     //
     // Go into an infinite loop.
     //
