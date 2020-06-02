@@ -20,7 +20,7 @@ list_t xTimeOutList;
 OSThread_t* ptRunning = NULL;
 OSThread_t* ptNext = NULL;
 
-uint32_t ui32SysTicks = 0;
+volatile uint32_t ui32SysTicks = 0;
 
 uint32_t lrTemp;
 
@@ -89,11 +89,21 @@ void OS_tick() {
 
 }
 
+volatile uint32_t ts = 0;
 
 // Operating system timer handler
 void SysTick_Handler() {
 
 	OS_tick();
+
+	if(ui32SysTicks % 2 == 0)
+		ts = delay_timer->TAR;
+	else
+		ts = delay_timer->TAR - ts;
+
+	if(ui32SysTicks % 1000 == 0)
+		UART_send_stringL("Tick Tick");
+
 
 	/* If the current task time slot ended
 	 * Switch to the next ready task
@@ -115,6 +125,7 @@ void SysTick_Handler() {
 
 	SysTick->CTRL |= 1;		// Start the timer
 }
+
 
 
 
@@ -192,22 +203,24 @@ void SVC_HandlerMain(uint32_t* sp) {
 
 }
 //
-	//another argument to be added
+	// another argument to be added
 static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty) {
 
 	static uint32_t ui32NoOfThreads =0;
 
-	//check stack alignment
+	// check stack alignment
 	if(ui32StkSize % 8 !=0)
 		while(1);
 
-	//set sp to the right point
-	sp = (uint32_t*) ((uint32_t)sp + ui32StkSize - (18*4* FPU_ENABLED));	//18 for fpu auto context (s0-s15 + FPSCR + aligner)
+	// set SP to the right point
+	// divide SP by 8 and multiply by 8 for 8-byte stack alignment
+	// 18 for FPU auto context (s0-s15 + FPSCR + aligner)
+	sp = (uint32_t*) ( ((uint32_t)sp / 8 * 8 ) + ui32StkSize - (18*4* FPU_ENABLED) );
 
 
 	*(--sp) = (1U << 24);	//thumb bit state xPSR
 	*(--sp) = (uint32_t) me->OSThreadHandler ;	//PC
-	//for debugging purposes
+	// for debugging purposes
 	*(--sp) = 0xEU;	//LR
 	*(--sp) = 0xCU;	//R12
 	*(--sp) = 0x3U;	//R3
