@@ -41,6 +41,7 @@ OSThread_t blinky2;
 void main2(){
 
 	while(1){
+
 		UART_send_stringL("Hello main 2");
 		LED2_ON
 		uint32_t i=0;
@@ -59,6 +60,7 @@ OSThread_t blinky3;
 void main3(){
 
 	while(1){
+
 		UART_send_stringL("Hello main 3");
 		LED3_ON
 		uint32_t i=0;
@@ -76,6 +78,7 @@ OSThread_t UART;
 void main4(){
 
 	while(1){
+
 		UART_send_stringL("Hello main 4");
 		uint32_t i=0;
 		for(i=0; i<1000000; ++i);
@@ -88,6 +91,7 @@ uint32_t stack0[80];	//idle stack
 void OS_onIdle(){
 
 	while(1){
+
 	UART_send_stringL("Idle");
 		__WFI();	//w8 for interrupts
 	}
@@ -105,13 +109,13 @@ int main(void) {
 
 
 
+
 //	SCnSCB->ACTLR |= BIT1;	//Disable write buffer to make the imprecise faults precise
 
 //	delay_timer_init();
 //	delay_time(500);
 //	delay_timer->CTL |= BIT0;
 
-//	__assert();
 	OS_init(stack0, sizeof(stack0));
 
 

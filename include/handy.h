@@ -19,8 +19,14 @@
 //A -> J AHB
 
 
-void __error__(char *pcFilename, uint32_t ui32Line);
+// ASSERT
+#define  ASSERT_(expr)	((expr) ? (void)0 : error_(__FILE__, __LINE__))
 
+void error_(char *pcFilename, uint32_t ui32Line);
+
+
+#define DISABLE_IRQ		__asm(" cpsid	 i")
+#define ENABLE_IRQ		__asm(" cpsie	 i")
 
 #define LED1_ON		GPION_DATA(P1) = P1;
 #define LED1_OFF	GPION_DATA(P1) = 0;
