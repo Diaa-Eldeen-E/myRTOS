@@ -29,6 +29,9 @@
 void error_(char *pcFilename, uint32_t ui32Line);
 void warning_(char *pcFilename, uint32_t ui32Line);
 
+// Disable write buffer to make the imprecise faults precise
+#define DISABLE_WRITE_BUFFER	SCnSCB->ACTLR |= BIT1
+
 #define DISABLE_IRQ		__asm(" cpsid	 i")
 #define ENABLE_IRQ		__asm(" cpsie	 i")
 
