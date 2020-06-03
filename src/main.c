@@ -135,11 +135,8 @@ int main(void) {
 	OS_SVC_threadCreate(&blinky3, stack3, sizeof(stack3), 3);
 	OS_SVC_threadCreate(&UART, stack4, sizeof(stack4), 4);
 
-	OS_SVC_run();
+	OS_run();
 
-	while(1){
-
-	}
 }
 
 

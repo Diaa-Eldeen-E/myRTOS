@@ -23,7 +23,7 @@ extern queue_t xTimeOutList;
 
 volatile uint32_t ui32SysTicks = 0;
 
-uint32_t lrTemp;
+uint32_t svcEXEReturn;
 
 
 
@@ -100,30 +100,16 @@ void SysTick_Handler() {
 
 void OS_run() {
 
-	OS_threadScheduleNext();
+	SysTick->CTRL |= BIT0;
 
-	//load psp with the running thread sp
-	__asm("pxNextAddr:		.word	pxNext");
-	__asm(" ldr	r0,	pxNextAddr");
-	__asm(" ldr   r0,	[r0]");
-	__asm(" ldr   r0, [r0, #4]");
-	if(FPU_ENABLED)
-		__asm(" add   r0, #104");	//10 (r3-r11 + lr , control) + 16 (s16-s31)
-	else
-		__asm(" add   r0, #40");
+	__asm(" mrs	r0,	msp");
 	__asm(" msr psp, r0");
-
-	lrTemp = 0xFFFFFFED | ((!FPU_ENABLED) << 4);	//exception Return	( (fpu/no-fpu), non privilege, psp)
-
-	//change thread access to non-privilege
-	__asm(" mrs r0,	control");	//load control
-	__asm(" orr r0, r0, #3");
-	__asm(" msr control, r0");	//save in control
+	__asm(" mrs r0,	control");	// load control
+	__asm(" orr r0, r0, #3");	// Unprivileged thread mode, PSP
+	__asm(" msr control, r0");	// save in control
 	__asm("  isb");
 
-	pxRunning = pxNext;
-
-	ENABLE_IRQ;
+	while(1);
 }
 
 
@@ -157,28 +143,31 @@ void SVC_HandlerMain(uint32_t* sp) {
 
 void OS_init(uint32_t* sp, uint32_t stkSize) {
 
+
+
+
 	OS_threadQueuesInit();
 
 	// Create idle thread
 	idleThread.OSThreadHandler = &OS_idleThread;
 
 	// SysTick configuration
-	SysTick->CTRL |= BIT0 | BIT1;	// Enable timer and interrupt (4MHz clock)
+	SysTick->CTRL |=  BIT1;	// Enable interrupt (4MHz clock)
 	ASSERT_TRUE(TICK_PERIOD_MS > 0 && (TICK_PERIOD_MS <  0xffffff / (4000000UL/1000) ));
 	SysTick->LOAD = (TICK_PERIOD_MS * (4000000UL/1000)) -1;	// (4M / 1000) = 1 ms counts
 
 	__NVIC_SetPriority(SVCall_IRQn, 0);
-	__NVIC_SetPriority(SYSCTL_IRQn, 4);
+	__NVIC_SetPriority(SysTick_IRQn, 4);
 	__NVIC_SetPriority(PendSV_IRQn, 7);
 
 	__NVIC_EnableIRQ(SVCall_IRQn);	//
-
+	__NVIC_EnableIRQ(SysTick_IRQn);
 	//ENABLE_IRQ;
 
 	OS_SVC_threadCreate(&idleThread, sp, stkSize, PRIORITY_LEVELS-1);
 
 
-	__NVIC_EnableIRQ(SYSCTL_IRQn);
-
 	__NVIC_EnableIRQ(PendSV_IRQn);
+
+
 }

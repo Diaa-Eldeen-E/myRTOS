@@ -4,27 +4,21 @@
 .thumb
 .syntax unified		@ thumb-2 mixed instructions
 
-		.global	pxRunning
-		.global pxNext
-		.global pxNextAddr
-		.global	lrTemp
-pxRunningAddr:	.word	pxRunning
-pxNextAddr:		.word	pxNext
-lrTempAddr:		.word	lrTemp
-
 
 		.global	OS_SVC_threadCreate
 		.global SVC_HandlerMain
 		.global	SVC_Handler
 		.global	PendSV_Handler
-		.global	OS_SVC_run
 		.global	OS_SVC_delay
 		
-OS_SVC_run:
-		svc	#0
-infLoop:
-		b infLoop
-		
+		.global	pxRunning
+		.global pxNext
+
+pxRunningAddr:	.word	pxRunning
+pxNextAddr:		.word	pxNext
+
+
+
 		
 OS_SVC_threadCreate:
 		svc	#1
@@ -35,7 +29,6 @@ OS_SVC_delay:
 		svc #2
 		bx lr
 		
-
 
 		
 
@@ -50,13 +43,10 @@ SVC_Handler:
 		IT	NE
 		MRSNE	r0,	psp
 		
-		ldr	r1,	lrTempAddr	@ store the return address because it might be over written
-		str	lr,	[r1]
-		
+		push {lr}
 		BL	SVC_HandlerMain	@ call SVC_HandlerMain
 		
-		ldr r1,	lrTempAddr	@ restore the return address
-		ldr	lr,	[r1]
+		pop {lr}
 		BX lr
 
 
