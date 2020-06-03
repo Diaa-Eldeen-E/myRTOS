@@ -24,13 +24,15 @@
 
 // ASSERT
 #define ASSERT_TRUE(expr)		((expr) ? (void)0 : error_(__FILE__, __LINE__))
-#define	ASSERT_TRUE_WARN(expr)	((expr) ? (void)0 : warn_(__FILE__, __LINE__))
+#define	ASSERT_TRUE_WARN(expr)	((expr) ? (void)0 : warning_(__FILE__, __LINE__))
 
 void error_(char *pcFilename, uint32_t ui32Line);
-void warn_(char *pcFilename, uint32_t ui32Line);
+void warning_(char *pcFilename, uint32_t ui32Line);
 
 #define DISABLE_IRQ		__asm(" cpsid	 i")
 #define ENABLE_IRQ		__asm(" cpsie	 i")
+
+#define PEND_SV		SCB->ICSR |= BIT28
 
 #define LED1_ON		GPION_DATA(P1) = P1;
 #define LED1_OFF	GPION_DATA(P1) = 0;

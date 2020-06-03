@@ -19,7 +19,7 @@ void error_(char *pcFilename, uint32_t ui32Line) {
 }
 
 // Warning handler used for debugging
-void warn_(char *pcFilename, uint32_t ui32Line) {
+void warning_(char *pcFilename, uint32_t ui32Line) {
 
 	if(TREAT_WARNING_AS_ERROR) {
 
