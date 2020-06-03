@@ -16,7 +16,6 @@ extern OSThread_t* pxRunning;
 extern OSThread_t* pxNext;
 
 extern OSThread_t idleThread;
-extern uint64_t idleStack[40];
 
 extern queue_t xTimeOutList;
 
@@ -24,9 +23,6 @@ extern queue_t xTimeOutList;
 volatile uint32_t ui32SysTicks = 0;
 
 uint32_t svcEXEReturn;
-
-
-
 
 
 
@@ -51,20 +47,29 @@ void OS_tick() {
 	++ui32SysTicks;
 
 	// Iterate over all tasks in the time out list
-	OSThread_t* iter = &xTimeOutList.xHead;
+	OSThread_t* pxIter = &xTimeOutList.xHead;
 	uint32_t i=0;
 	for(i=0; i<xTimeOutList.ui32NoOfItems; ++i){
 
-		iter = iter->pxNext;
+		pxIter = pxIter->pxNext;
 
 		// Reduce the time out period and when it is over move the task to the ready list
-		if(iter->ui32TimeOut > 0) {
-			iter->ui32TimeOut--;
-			if(iter->ui32TimeOut == 0)
-				OS_queuePushThread(&readyQueues[iter->ui32Priority], OS_queuePopThread(&xTimeOutList, iter));
+		if(pxIter->ui32TimeOut > 0) {
 
-		} else {
-			OS_queuePushThread(&readyQueues[iter->ui32Priority], OS_queuePopThread(&xTimeOutList, iter));
+			pxIter->ui32TimeOut--;
+			if(pxIter->ui32TimeOut == 0) {
+
+				OSThread_t* pxRdyThread = OS_queuePopThread(&xTimeOutList, pxIter);
+				pxIter = pxIter->pxNext;
+				i++;
+				OS_queuePushThread(&readyQueues[pxIter->ui32Priority], pxRdyThread);
+			}
+		}
+		else {
+			OSThread_t* pxRdyThread = OS_queuePopThread(&xTimeOutList, pxIter);
+			pxIter = pxIter->pxNext;
+			i++;
+			OS_queuePushThread(&readyQueues[pxIter->ui32Priority], pxRdyThread);
 		}
 
 	}
@@ -100,8 +105,9 @@ void SysTick_Handler() {
 
 void OS_run() {
 
-	SysTick->CTRL |= BIT0;
+	SysTick->CTRL |= BIT0;	// Start SysTick
 
+	// Change thread mode to unprivileged and use PSP stack
 	__asm(" mrs	r0,	msp");
 	__asm(" msr psp, r0");
 	__asm(" mrs r0,	control");	// load control
@@ -119,22 +125,21 @@ void SVC_HandlerMain(uint32_t* sp) {
 
 	uint8_t ui8SVCNo = *((uint32_t*)((uint32_t) sp[6] - 2));
 
-	if(ui8SVCNo == 0) {
-		OS_run();
 
-	} else if(ui8SVCNo == 1) {
+	if(ui8SVCNo == 1) {
+		// Fetch the fifth argument passed through r12
+		uint32_t uiR12;
+		__ASM volatile ("mov %0, r12"  : "=r" (uiR12) );
 
-		OS_threadCreate((OSThread_t*)sp[0],(uint32_t*) sp[1], sp[2], sp[3]);	//another argument to be added
+		OS_threadCreate((OSThread_t*) sp[0], (OSThreadHandler_t) sp[1],  \
+							(uint32_t*) sp[2], sp[3], uiR12);
 
 	} else if(ui8SVCNo == 2) {
 		OS_delay(sp[0]);
 
-	}
-
-	else {
+	} else {
 		while(1);
 	}
-
 
 }
 
@@ -143,31 +148,21 @@ void SVC_HandlerMain(uint32_t* sp) {
 
 void OS_init(uint32_t* sp, uint32_t stkSize) {
 
-
-
-
-	OS_threadQueuesInit();
-
-	// Create idle thread
-	idleThread.OSThreadHandler = &OS_idleThread;
-
-	// SysTick configuration
-	SysTick->CTRL |=  BIT1;	// Enable interrupt (4MHz clock)
-	ASSERT_TRUE(TICK_PERIOD_MS > 0 && (TICK_PERIOD_MS <  0xffffff / (4000000UL/1000) ));
-	SysTick->LOAD = (TICK_PERIOD_MS * (4000000UL/1000)) -1;	// (4M / 1000) = 1 ms counts
-
+	// OS interrupt priorities
 	__NVIC_SetPriority(SVCall_IRQn, 0);
 	__NVIC_SetPriority(SysTick_IRQn, 4);
 	__NVIC_SetPriority(PendSV_IRQn, 7);
 
-	__NVIC_EnableIRQ(SVCall_IRQn);	//
-	__NVIC_EnableIRQ(SysTick_IRQn);
+	OS_threadQueuesInit();
+
+	// Create idle thread
+	OS_SVC_threadCreate(&idleThread, &OS_idleThread, sp, stkSize, PRIORITY_LEVELS-1);
+
+	// SysTick configuration
+	SysTick->CTRL |=  BIT1;	// Enable SysTick interrupt (4MHz clock)
+	ASSERT_TRUE(TICK_PERIOD_MS > 0 && (TICK_PERIOD_MS <  0xffffff / (4000000UL/1000) ));
+	SysTick->LOAD = (TICK_PERIOD_MS * (4000000UL/1000)) -1;	// (4M / 1000) = 1 ms counts
+
 	//ENABLE_IRQ;
-
-	OS_SVC_threadCreate(&idleThread, sp, stkSize, PRIORITY_LEVELS-1);
-
-
-	__NVIC_EnableIRQ(PendSV_IRQn);
-
 
 }

@@ -42,12 +42,14 @@ typedef struct queue_t {
 }queue_t;
 
 
-extern void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
+extern void OS_SVC_threadCreate(OSThread_t* pxThread, OSThreadHandler_t pxThreadHandler, \
+					uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
 extern void OS_onIdle();
 
 void OS_threadScheduleNext();
 void OS_idleThread();
-void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
+void OS_threadCreate(OSThread_t* pxThread, OSThreadHandler_t pxThreadHandler,  \
+					uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
 
 
 

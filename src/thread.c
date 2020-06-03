@@ -16,9 +16,7 @@ OSThread_t* pxRunning = NULL;
 OSThread_t* pxNext = NULL;
 
 
-
 OSThread_t idleThread;
-uint64_t idleStack[40];
 void OS_idleThread(){
 
 	OS_onIdle();
@@ -47,11 +45,12 @@ void OS_threadScheduleNext() {
 
 //
 	// another argument to be added
-void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty) {
+void OS_threadCreate(OSThread_t* pxThread, OSThreadHandler_t pxThreadHandler,  \
+					uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty) {
 
 	static uint32_t ui32NoOfThreads =0;
 
-	ASSERT_TRUE(me != NULL && sp != NULL);
+	ASSERT_TRUE(pxThread != NULL && sp != NULL);
 	ASSERT_TRUE(ui32Priorty < PRIORITY_LEVELS);	// Check priority value
 	ASSERT_TRUE(ui32StkSize % 8 == 0);	// check stack alignment
 	ASSERT_TRUE_WARN(ui32StkSize > sizeof(uint32_t) * 40);
@@ -63,7 +62,7 @@ void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_
 
 
 	*(--sp) = (1U << 24);	//thumb bit state xPSR
-	*(--sp) = (uint32_t) me->OSThreadHandler ;	//PC
+	*(--sp) = (uint32_t) pxThreadHandler;	//PC
 	// for debugging purposes
 	*(--sp) = 0xEU;	//LR
 	*(--sp) = 0xCU;	//R12
@@ -87,12 +86,13 @@ void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_
 	*(--sp) = 0xFFFFFFED | ((!FPU_ENABLED) << 4);	//Exception return,	( (fpu/no-fpu), non prev, psp)
 
 
-	me->sp = sp;
-	me->ui32ThreadID = ui32NoOfThreads++;
-	me->ui32Priority = ui32Priorty;
-	me->ui32TimeOut = 0;
+	pxThread->OSThreadHandler = pxThreadHandler;
+	pxThread->sp = sp;
+	pxThread->ui32ThreadID = ui32NoOfThreads++;
+	pxThread->ui32Priority = ui32Priorty;
+	pxThread->ui32TimeOut = 0;
 
-	OS_queuePushThread(&readyQueues[ui32Priorty], me);
+	OS_queuePushThread(&readyQueues[ui32Priorty], pxThread);
 }
 
 
@@ -126,13 +126,15 @@ OSThread_t* OS_queuePopThread(queue_t* pxQueue, OSThread_t* OSThread) {
 
 	 ASSERT_TRUE(pxQueue != NULL && OSThread != NULL);
 
-	 if(pxQueue->ui32NoOfItems == 0)
-		 pxQueue->pxTail->pxPrev = OSThread;
+//	 if(pxQueue->ui32NoOfItems == 0)
+//		 pxQueue->pxTail->pxPrev = OSThread;
 
 	 pxQueue->pxTail->pxNext = OSThread;
 	 OSThread->pxNext = &pxQueue->xHead;
 	 OSThread->pxPrev = pxQueue->pxTail;
 	 pxQueue->pxTail = OSThread;
+
+	 pxQueue->xHead.pxPrev = pxQueue->pxTail;
 
 	 pxQueue->ui32NoOfItems++;
 }
