@@ -106,6 +106,7 @@ void SysTick_Handler() {
 void OS_run() {
 
 	SysTick->CTRL |= BIT0;	// Start SysTick
+	ENABLE_IRQ;
 
 	// Change thread mode to unprivileged and use PSP stack
 	__asm(" mrs	r0,	msp");
@@ -162,7 +163,5 @@ void OS_init(uint32_t* sp, uint32_t stkSize) {
 	SysTick->CTRL |=  BIT1;	// Enable SysTick interrupt (4MHz clock)
 	ASSERT_TRUE(TICK_PERIOD_MS > 0 && (TICK_PERIOD_MS <  0xffffff / (4000000UL/1000) ));
 	SysTick->LOAD = (TICK_PERIOD_MS * (4000000UL/1000)) -1;	// (4M / 1000) = 1 ms counts
-
-	//ENABLE_IRQ;
 
 }
