@@ -36,7 +36,7 @@ typedef struct OSThread_t {
 typedef struct queue_t {
 	uint32_t ui32NoOfItems;
 
-	OSThread_t* pxIndex;
+	OSThread_t* pxTail;
 	OSThread_t xHead;
 
 }queue_t;
@@ -52,7 +52,7 @@ void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_
 
 
 void OS_threadQueuesInit();
-void OS_threadQueuePush(queue_t* pxQueue, OSThread_t* item);
-OSThread_t* OS_threadQueuePop(queue_t* pxQueue, OSThread_t* item);
+void OS_queuePushThread(queue_t* pxQueue, OSThread_t* item);
+OSThread_t* OS_queuePopThread(queue_t* pxQueue, OSThread_t* item);
 
 #endif /* INCLUDE_THREAD_H_ */

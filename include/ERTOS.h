@@ -13,8 +13,6 @@
 
 #include "ERTOS_config.h"
 #include "thread.h"
-#include "list.h"
-
 
 #include "handy.h"
 

@@ -40,7 +40,7 @@ void OS_delay(uint32_t ui32Ticks) {
 	OS_threadScheduleNext();
 
 	pxRunning->ui32TimeOut = ui32Ticks;
-	OS_threadQueuePush(&xTimeOutList, pxRunning);
+	OS_queuePushThread(&xTimeOutList, pxRunning);
 	PEND_SV;
 	ENABLE_IRQ;
 }
@@ -61,10 +61,10 @@ void OS_tick() {
 		if(iter->ui32TimeOut > 0) {
 			iter->ui32TimeOut--;
 			if(iter->ui32TimeOut == 0)
-				OS_threadQueuePush(&readyQueues[iter->ui32Priority], OS_threadQueuePop(&xTimeOutList, iter));
+				OS_queuePushThread(&readyQueues[iter->ui32Priority], OS_queuePopThread(&xTimeOutList, iter));
 
 		} else {
-			OS_threadQueuePush(&readyQueues[iter->ui32Priority], OS_threadQueuePop(&xTimeOutList, iter));
+			OS_queuePushThread(&readyQueues[iter->ui32Priority], OS_queuePopThread(&xTimeOutList, iter));
 		}
 
 	}
@@ -86,7 +86,7 @@ void SysTick_Handler() {
 
 		// Insert the last running thread back into the ready list before switching
 		if(pxRunning != NULL) {
-			OS_threadQueuePush(&readyQueues[pxRunning->ui32Priority], pxRunning);
+			OS_queuePushThread(&readyQueues[pxRunning->ui32Priority], pxRunning);
 		}
 
 		OS_threadScheduleNext();
