@@ -10,10 +10,13 @@
 
 
 
+
 #include "ERTOS_config.h"
+#include "thread.h"
 #include "list.h"
 
 
+#include "handy.h"
 
 
 extern void OS_SVC_delay();
@@ -24,7 +27,7 @@ void OS_delay(uint32_t ui32Ticks);
 void OS_run();
 void OS_tick();
 
-void OS_sched();
+
 //void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
 
 void OS_init();

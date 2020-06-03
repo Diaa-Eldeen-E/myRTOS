@@ -2,14 +2,14 @@
 
 .text	@ This is the default any way
 .thumb
-.syntax unified
+.syntax unified		@ thumb-2 mixed instructions
 
-		.global	ptRunning
-		.global ptNext
-		.global ptNextAddr
+		.global	pxRunning
+		.global pxNext
+		.global pxNextAddr
 		.global	lrTemp
-ptRunningAddr:	.word	ptRunning
-ptNextAddr:		.word	ptNext
+pxRunningAddr:	.word	pxRunning
+pxNextAddr:		.word	pxNext
 lrTempAddr:		.word	lrTemp
 
 
@@ -39,11 +39,11 @@ OS_SVC_delay:
 
 		
 
-# It causes error "Invalid state (arm state)" when we don't use the following line
-# It sets the symbol name as a function symbol in the symbol entry table
+@ It causes error "Invalid state (arm state)" when we don't use the following line
+@ It sets the symbol name as a function symbol in the symbol entry table
 .type SVC_Handler, %function	
 SVC_Handler:
-		# put sp in r0 (passing it as the first argument to SVC_HandlerMain)
+		@ put sp in r0 (passing it as the first argument to SVC_HandlerMain)
 		TST	lr,	#4	@ lr bitwise-& bit 2	@ check the bit for the msp or psp
 		IT	EQ		@ if msp
 		MRSEQ	r0,	msp	
@@ -65,8 +65,8 @@ SVC_Handler:
 PendSV_Handler:
 		cpsid	 i		@ Disable interrupts
 		
-		# Save the current context
-		ldr	r0,	ptRunningAddr
+		@ Save the current context
+		ldr	r0,	pxRunningAddr
 		ldr	r0,	[r0]
 		
 		cbz r0,	LoadNext	@ if runningThread = NULL, skip to LoadNext
@@ -81,41 +81,39 @@ PendSV_Handler:
 		stmdb r1!, {r2-r11}	@ Save the context
 	
 		
-		# Uncomment the following lines if r0 value changed 
-		#ldr	r0,	ptRunningAddr	
-		#ldr	r0,	[r0]
+		@ Uncomment the following lines if r0 value changed 
+		@ ldr	r0,	pxRunningAddr	
+		@ ldr	r0,	[r0]
 		str	r1,	[r0, #4]	@ save current sp in the current running thread
 
 LoadNext:
-		ldr	r1,	ptRunningAddr
+		ldr	r1,	pxRunningAddr
 		
-		# load sp from nextThread struct
-		ldr	r0,	ptNextAddr
+		@ load sp from nextThread struct
+		ldr	r0,	pxNextAddr
 		ldr r0,	[r0]
-		str r0,	[r1]		@ ptRunningAddr = ptNext
+		str r0,	[r1]		@ pxRunning = pxNext
 		ldr	r0,	[r0, #4]	@ 2nd struct member (sp)
 		
-		# restore new context
-		ldmia r0!, {r2-r11}		@lr, control, r3-r11
+		@ restore new context
+		ldmia r0!, {r2-r11}		@ lr, control, r3-r11
 		mov	lr,	r2
 		msr	control, r3
 		isb
 		tst	lr,	#0x10		@ check fpu in lr
 		it	eq				@ if fpu
-		vldmiaeq	r0!, {s16-s31}	@restore fpu context
+		vldmiaeq	r0!, {s16-s31}	@ restore fpu context
 		
-		#pop	{r4-r5}
-		#pop	{r4-r11}
 		msr	psp, r0		@ move the r0 to psp using msr 
 		cpsie	 i		@ Enable interrupts
 		bx lr
 
 
-# Quick reference
-#MRS rd, spec reg	move from special register to register
-#MSR	spec reg rd	move from register to special register
+@ Quick reference
+@ MRS rd, spec reg	move from special register to register
+@ MSR	spec reg rd	move from register to special register
 
-#ISB	Instruction sync barrier
-#DMB	data memory barrier
-#DSB	data sync barrier
+@ ISB	Instruction sync barrier
+@ DMB	data memory barrier
+@ DSB	data sync barrier
 

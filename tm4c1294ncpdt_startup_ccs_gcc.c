@@ -351,8 +351,6 @@ static void myFaultISR(sContextStateFrame* frame) {
 	}
 
 	while(1);	// Enter an infinite loop.
-
-	myFaultISR(frame);	//just to remove the warning (unused symbol)
 }
 
 

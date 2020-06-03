@@ -7,52 +7,42 @@
 
 
 #include "ERTOS.h"
-static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty);
-
-extern void OS_onIdle();
+#include "thread.h"
 
 
-list_t readyList[PRIORITY_LEVELS];
 
-list_t xTimeOutList;
+extern queue_t readyQueues[PRIORITY_LEVELS];
+extern OSThread_t* pxRunning;
+extern OSThread_t* pxNext;
 
+extern OSThread_t idleThread;
+extern uint64_t idleStack[40];
 
-OSThread_t* ptRunning = NULL;
-OSThread_t* ptNext = NULL;
+extern queue_t xTimeOutList;
+
 
 volatile uint32_t ui32SysTicks = 0;
 
 uint32_t lrTemp;
 
 
-OSThread_t idleThread;
-uint64_t idleStack[40];
-void OS_idleThread(){
 
-	OS_onIdle();
-
-	while(1){
-
-	}
-}
 
 
 
 void OS_delay(uint32_t ui32Ticks) {
 
-
-	__asm(" cpsid	 i");	// disable_irq();
+	DISABLE_IRQ;
 
 	// Calling OS_delay from idle thread causes  error
-	if(ptRunning->ui32ThreadID == 0)
-		while(1);
+	ASSERT_TRUE(pxRunning->ui32ThreadID != 0);
 
-	OS_sched();
+	OS_threadScheduleNext();
 
-	ptRunning->ui32TimeOut = ui32Ticks;
-	listInsertItemLast(&xTimeOutList, ptRunning);
-	SCB->ICSR |= BIT28;	//pendSV
-	__asm(" cpsie	 i");	//__enable_irq();
+	pxRunning->ui32TimeOut = ui32Ticks;
+	OS_threadQueuePush(&xTimeOutList, pxRunning);
+	PEND_SV;
+	ENABLE_IRQ;
 }
 
 
@@ -61,20 +51,20 @@ void OS_tick() {
 	++ui32SysTicks;
 
 	// Iterate over all tasks in the time out list
-	OSThread_t* iter = &xTimeOutList.tHead;
+	OSThread_t* iter = &xTimeOutList.xHead;
 	uint32_t i=0;
 	for(i=0; i<xTimeOutList.ui32NoOfItems; ++i){
 
-		iter = iter->ptNext;
+		iter = iter->pxNext;
 
 		// Reduce the time out period and when it is over move the task to the ready list
 		if(iter->ui32TimeOut > 0) {
 			iter->ui32TimeOut--;
 			if(iter->ui32TimeOut == 0)
-				listInsertItemLast(&readyList[iter->ui32Priority], listGetItem(&xTimeOutList, iter));
+				OS_threadQueuePush(&readyQueues[iter->ui32Priority], OS_threadQueuePop(&xTimeOutList, iter));
 
 		} else {
-			listInsertItemLast(&readyList[iter->ui32Priority], listGetItem(&xTimeOutList, iter));
+			OS_threadQueuePush(&readyQueues[iter->ui32Priority], OS_threadQueuePop(&xTimeOutList, iter));
 		}
 
 	}
@@ -89,24 +79,20 @@ void SysTick_Handler() {
 	SysTick->CTRL |= 1;		// Clear the flag and Start counting again
 	OS_tick();
 
-	/* If the current task time slot ended
-	 * Switch to the next ready task
-	 */
+	// Switch to the next ready task when the time slot ends
 	if(ui32SysTicks % TIME_SLOT == 0) {
 
-		__asm(" cpsid	 i");
+		DISABLE_IRQ;
 
-		//insert the last running thread back into the ready list before switching
-		if(ptRunning != NULL) {
-			listInsertItemLast(&readyList[ptRunning->ui32Priority], ptRunning);
+		// Insert the last running thread back into the ready list before switching
+		if(pxRunning != NULL) {
+			OS_threadQueuePush(&readyQueues[pxRunning->ui32Priority], pxRunning);
 		}
 
-		OS_sched();
-		__asm(" cpsie	 i");
-
-		SCB->ICSR |= BIT28;	//pendSV
+		OS_threadScheduleNext();
+		PEND_SV;
+		ENABLE_IRQ;
 	}
-
 }
 
 
@@ -114,11 +100,11 @@ void SysTick_Handler() {
 
 void OS_run() {
 
-	OS_sched();
+	OS_threadScheduleNext();
 
 	//load psp with the running thread sp
-	__asm("ptNextAddr:		.word	ptNext");
-	__asm(" ldr	r0,	ptNextAddr");
+	__asm("pxNextAddr:		.word	pxNext");
+	__asm(" ldr	r0,	pxNextAddr");
 	__asm(" ldr   r0,	[r0]");
 	__asm(" ldr   r0, [r0, #4]");
 	if(FPU_ENABLED)
@@ -135,25 +121,12 @@ void OS_run() {
 	__asm(" msr control, r0");	//save in control
 	__asm("  isb");
 
-	ptRunning = ptNext;
+	pxRunning = pxNext;
 
-	__asm(" cpsie	 i");	//__enable_irq();
-
+	ENABLE_IRQ;
 }
 
 
-void OS_sched() {
-
-	// Determine the highest priority non-empty queue in the ready list
-	uint32_t i=0;
-	for(i=0; i<PRIORITY_LEVELS; ++i)
-		if(readyList[i].ui32NoOfItems > 0)
-			break;
-
-	ASSERT_TRUE(i < PRIORITY_LEVELS);
-
-	ptNext = listGetItem(&readyList[i], readyList[i].ptIndex);
-}
 
 //add status return
 void SVC_HandlerMain(uint32_t* sp) {
@@ -178,82 +151,19 @@ void SVC_HandlerMain(uint32_t* sp) {
 
 
 }
-//
-	// another argument to be added
-static void OS_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty) {
-
-	static uint32_t ui32NoOfThreads =0;
-
-	ASSERT_TRUE(me != NULL && sp != NULL);
-	ASSERT_TRUE(ui32Priorty < PRIORITY_LEVELS);	// Check priority value
-	ASSERT_TRUE(ui32StkSize % 8 == 0);	// check stack alignment
-	ASSERT_TRUE_WARN(ui32StkSize > sizeof(uint32_t) * 40);
-
-	// set SP to the right point
-	// divide SP by 8 and multiply by 8 for 8-byte stack alignment
-	// 18 for FPU auto context (s0-s15 + FPSCR + aligner)
-	sp = (uint32_t*) ( ((uint32_t)sp / 8 * 8 ) + ui32StkSize - (18*4* FPU_ENABLED) );
-
-
-	*(--sp) = (1U << 24);	//thumb bit state xPSR
-	*(--sp) = (uint32_t) me->OSThreadHandler ;	//PC
-	// for debugging purposes
-	*(--sp) = 0xEU;	//LR
-	*(--sp) = 0xCU;	//R12
-	*(--sp) = 0x3U;	//R3
-	*(--sp) = 0x2U;	//R2
-	*(--sp) = 0x1U;	//R1
-	*(--sp) = 0x0U;	//R0
-
-	sp -= 16 * FPU_ENABLED;	//fpu manual context (s16-s31)
-
-	*(--sp) = 0xBU;	//R11
-	*(--sp) = 0xAU;	//R10
-	*(--sp) = 0x9U;	//R9
-	*(--sp) = 0x8U;	//R8
-	*(--sp) = 0x7U;	//R7
-	*(--sp) = 0x6U;	//R6
-	*(--sp) = 0x5U;	//R5
-	*(--sp) = 0x4U;	//R4
-
-	*(--sp) = 0x3U;	//control
-	*(--sp) = 0xFFFFFFED | ((!FPU_ENABLED) << 4);	//Exception return,	( (fpu/no-fpu), non prev, psp)
-
-
-	me->sp = sp;
-	me->ui32ThreadID = ui32NoOfThreads++;
-	me->ui32Priority = ui32Priorty;
-	me->ui32TimeOut = 0;
-
-	listInsertItem(&readyList[ui32Priorty], me);
-}
-
-//#pragma FUNC_ALWAYS_INLINE(OS_SVC_threadCreate)
-////another argument to be added
-//__always_inline __inline void OS_SVC_threadCreate(OSThread_t* me, uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty){
-//
-//	__asm(" svc	#1");
-//	__asm(" bx	lr");
-//}
-
 
 
 
 
 void OS_init(uint32_t* sp, uint32_t stkSize) {
 
-	// Initialize lists (ready list, waiting list)
-	uint32_t i;
-	for(i=0; i<PRIORITY_LEVELS; ++i) {
-		listInit(&readyList[i]);
-	}
-	listInit(&xTimeOutList);
+	OS_threadQueuesInit();
 
 	// Create idle thread
 	idleThread.OSThreadHandler = &OS_idleThread;
 
+	// SysTick configuration
 	SysTick->CTRL |= BIT0 | BIT1;	// Enable timer and interrupt (4MHz clock)
-
 	ASSERT_TRUE(TICK_PERIOD_MS > 0 && (TICK_PERIOD_MS <  0xffffff / (4000000UL/1000) ));
 	SysTick->LOAD = (TICK_PERIOD_MS * (4000000UL/1000)) -1;	// (4M / 1000) = 1 ms counts
 
@@ -262,7 +172,8 @@ void OS_init(uint32_t* sp, uint32_t stkSize) {
 	__NVIC_SetPriority(PendSV_IRQn, 7);
 
 	__NVIC_EnableIRQ(SVCall_IRQn);	//
-	__enable_irq();	//
+
+	//ENABLE_IRQ;
 
 	OS_SVC_threadCreate(&idleThread, sp, stkSize, PRIORITY_LEVELS-1);
 
@@ -270,6 +181,4 @@ void OS_init(uint32_t* sp, uint32_t stkSize) {
 	__NVIC_EnableIRQ(SYSCTL_IRQn);
 
 	__NVIC_EnableIRQ(PendSV_IRQn);
-
-//	__enable_irq();
 }
