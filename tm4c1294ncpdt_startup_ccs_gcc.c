@@ -342,7 +342,7 @@ static void myFaultISR(sContextStateFrame* frame) {
 
 	// if imprecise
 	if(ui32FaultNum & BIT10) {
-
+		__BKPT();
 		while(1);	// Enter an infinite loop.
 
 		// Insert this to make it precise (Must be inserted before the code that caused the problem)
@@ -353,6 +353,7 @@ static void myFaultISR(sContextStateFrame* frame) {
 	/* Note that if there is no fault, that could mean that an SVCall
 	 * occurred when the interrupts are disabled
 	 */
+	__BKPT();
 	while(1);	// Enter an infinite loop.
 }
 
@@ -369,6 +370,8 @@ static void IntDefaultHandler(void) {
 	uint8_t ui8ISRNum = SCB->ICSR;	// This holds which interrupt has occurred
 
 	ui8ISRNum *= 1;	//Just for removing the warning
+
+	__BKPT();
     //
     // Go into an infinite loop.
     //

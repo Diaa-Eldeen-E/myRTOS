@@ -15,6 +15,7 @@
 void error_(char *pcFilename, uint32_t ui32Line) {
 
 	DISABLE_IRQ;
+	__BKPT();
     while(1);
 }
 
@@ -24,6 +25,7 @@ void warning_(char *pcFilename, uint32_t ui32Line) {
 	if(TREAT_WARNING_AS_ERROR) {
 
 		DISABLE_IRQ;
+		__BKPT();
 		while(1);
 
 	}
