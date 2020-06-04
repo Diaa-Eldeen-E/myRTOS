@@ -21,8 +21,10 @@ pxNextAddr:		.word	pxNext
 
 		
 OS_SVC_threadCreate:
-		pop {r12}	@ Pass the fifth argument through r12
+		ldr r12, [sp]	@ Pass the fifth argument through r12
+		push {lr}
 		svc	#1
+		pop {lr}
 		bx	lr
 		
 

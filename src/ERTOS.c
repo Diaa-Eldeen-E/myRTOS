@@ -106,7 +106,8 @@ void SysTick_Handler() {
 void OS_run() {
 
 	SysTick->CTRL |= BIT0;	// Start SysTick
-	ENABLE_IRQ;
+
+	__set_BASEPRI(0);	// Enable all interrupts
 
 	// Change thread mode to unprivileged and use PSP stack
 	__asm(" mrs	r0,	msp");
@@ -149,19 +150,21 @@ void SVC_HandlerMain(uint32_t* sp) {
 
 void OS_init(uint32_t* sp, uint32_t stkSize) {
 
+	__set_BASEPRI(1);	//Disable all interrupts except SVC
+
 	// OS interrupt priorities
 	__NVIC_SetPriority(SVCall_IRQn, 0);
-	__NVIC_SetPriority(SysTick_IRQn, 4);
-	__NVIC_SetPriority(PendSV_IRQn, 7);
-
-	OS_threadQueuesInit();
-
-	// Create idle thread
-	OS_SVC_threadCreate(&idleThread, &OS_idleThread, sp, stkSize, PRIORITY_LEVELS-1);
+	__NVIC_SetPriority(SysTick_IRQn, 2);
+	__NVIC_SetPriority(PendSV_IRQn, 7);	// PendSV must be set to the lowest possible priority
 
 	// SysTick configuration
 	SysTick->CTRL |=  BIT1;	// Enable SysTick interrupt (4MHz clock)
 	ASSERT_TRUE(TICK_PERIOD_MS > 0 && (TICK_PERIOD_MS <  0xffffff / (4000000UL/1000) ));
 	SysTick->LOAD = (TICK_PERIOD_MS * (4000000UL/1000)) -1;	// (4M / 1000) = 1 ms counts
+
+	OS_threadQueuesInit();
+
+	// Create idle thread
+	OS_SVC_threadCreate(&idleThread, &OS_idleThread, sp, stkSize, PRIORITY_LEVELS-1);
 
 }
