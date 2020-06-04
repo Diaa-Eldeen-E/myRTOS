@@ -350,6 +350,9 @@ static void myFaultISR(sContextStateFrame* frame) {
 
 	}
 
+	/* Note that if there is no fault, that could mean that an SVCall
+	 * occurred when the interrupts are disabled
+	 */
 	while(1);	// Enter an infinite loop.
 }
 
