@@ -36,7 +36,7 @@ set(SOURCES
 	src/handy.c
 	src/main.c
 	src/ERTOS.c
-	src/list.c
+	src/thread.c
 	src/ERTOS_assembly.s
 	tm4c1294ncpdt_startup_ccs_gcc.c
 	)
