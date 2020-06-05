@@ -11,13 +11,13 @@
 
 
 
-extern queue_t readyQueues[PRIORITY_LEVELS];
-extern OSThread_t* pxRunning;
-extern OSThread_t* pxNext;
+extern volatile queue_t readyQueues[PRIORITY_LEVELS];
+extern OSThread_t* volatile pxRunning;
+extern OSThread_t* volatile pxNext;
 
 extern OSThread_t idleThread;
 
-extern queue_t xTimeOutList;
+extern volatile queue_t xTimeOutList;
 
 
 volatile uint32_t ui32SysTicks = 0;
@@ -35,8 +35,13 @@ void OS_delay(uint32_t ui32Ticks) {
 
 	OS_threadScheduleNext();
 
-	pxRunning->ui32TimeOut = ui32Ticks;
-	OS_queuePushThread(&xTimeOutList, pxRunning);
+	if(ui32Ticks > 0) {
+		// Put the thread in the time out (waiting) queue
+		pxRunning->ui32TimeOut = ui32Ticks;
+		OS_queuePushThread(&xTimeOutList, pxRunning);
+	}
+
+	// Switch context from this thread
 	PEND_SV;
 	ENABLE_IRQ;
 }
@@ -46,33 +51,33 @@ void OS_tick() {
 
 	++ui32SysTicks;
 
-	// Iterate over all tasks in the time out list
-	OSThread_t* pxIter = &xTimeOutList.xHead;
-	uint32_t i=0;
-	for(i=0; i<xTimeOutList.ui32NoOfItems; ++i){
+	if(xTimeOutList.ui32NoOfItems == 0)
+		return;
 
-		pxIter = pxIter->pxNext;
+	// Reduce the time out of all tasks in the time out list
+	OSThread_t* pxIter = xTimeOutList.xHead.pxNext;
+	do {
 
-		// Reduce the time out period and when it is over move the task to the ready list
+
 		if(pxIter->ui32TimeOut > 0) {
 
 			pxIter->ui32TimeOut--;
-			if(pxIter->ui32TimeOut == 0) {
 
+			if(pxIter->ui32TimeOut == 0) {
+				//  Move the thread from the waiting list to the ready list
 				OSThread_t* pxRdyThread = OS_queuePopThread(&xTimeOutList, pxIter);
 				pxIter = pxIter->pxNext;
-				i++;
-				OS_queuePushThread(&readyQueues[pxIter->ui32Priority], pxRdyThread);
+				OS_queuePushThread(&readyQueues[pxRdyThread->ui32Priority], pxRdyThread);
+			} else {
+				pxIter = pxIter->pxNext;
 			}
 		}
+
 		else {
-			OSThread_t* pxRdyThread = OS_queuePopThread(&xTimeOutList, pxIter);
-			pxIter = pxIter->pxNext;
-			i++;
-			OS_queuePushThread(&readyQueues[pxIter->ui32Priority], pxRdyThread);
+			ASSERT_TRUE(0);	// Error, this should never be executed
 		}
 
-	}
+	}while(pxIter->ui32ThreadID != 0xffffffff);	// The queue head dummy thread
 
 }
 
@@ -81,18 +86,20 @@ void OS_tick() {
 // Operating system timer handler
 void SysTick_Handler() {
 
+
 	SysTick->CTRL |= 1;		// Clear the flag and Start counting again
 	OS_tick();
 
-	// Switch to the next ready task when the time slot ends
-	if(ui32SysTicks % TIME_SLOT == 0) {
+	/* Context switch to the next ready tread when the current thread time slot ends
+	 * if a context switch is already pending skip this context switch
+	 */
+	if(ui32SysTicks % TIME_SLOT == 0 && (!(SCB->ICSR & BIT28))) {
 
 		DISABLE_IRQ;
 
 		// Insert the last running thread back into the ready list before switching
-		if(pxRunning != NULL) {
+		if(pxRunning != NULL)
 			OS_queuePushThread(&readyQueues[pxRunning->ui32Priority], pxRunning);
-		}
 
 		OS_threadScheduleNext();
 		PEND_SV;
