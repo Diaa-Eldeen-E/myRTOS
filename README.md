@@ -16,9 +16,9 @@
 	- User threads run in thread mode
 - Supports mutex and semaphore (This is stil a work in progress).
 - A config header file to control the RTOS e.g. FPU_ENABLED, PRIORTY_LEVELS and Tick period.
-- Provides a precise OS_delay function for periodic routines
+- Provides an OS_delay function for periodic routines
 - Depends totaly on static allocation i.e. requires 0 heap space
 - Provides an idle task hook.
 
 
-## RTOS CPU overhead < 0.8%
+#### RTOS CPU overhead < 0.8%	(CPU running at 80 MHz)
