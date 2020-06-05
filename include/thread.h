@@ -54,7 +54,7 @@ void OS_threadCreate(OSThread_t* pxThread, OSThreadHandler_t pxThreadHandler,  \
 
 
 void OS_threadQueuesInit();
-void OS_queuePushThread(queue_t* pxQueue, OSThread_t* item);
-OSThread_t* OS_queuePopThread(queue_t* pxQueue, OSThread_t* item);
+void OS_queuePushThread(volatile queue_t* pxQueue, OSThread_t* item);
+OSThread_t* OS_queuePopThread(volatile queue_t*  pxQueue, OSThread_t* item);
 
 #endif /* INCLUDE_THREAD_H_ */

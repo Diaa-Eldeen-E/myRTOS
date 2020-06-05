@@ -9,11 +9,12 @@
 #include "thread.h"
 
 
-queue_t readyQueues[PRIORITY_LEVELS];
-queue_t xTimeOutList;
+volatile queue_t readyQueues[PRIORITY_LEVELS];
+volatile queue_t xTimeOutList;
 
-OSThread_t* pxRunning = NULL;
-OSThread_t* pxNext = NULL;
+OSThread_t* volatile pxPrev = NULL;
+OSThread_t* volatile pxRunning = NULL;
+OSThread_t* volatile pxNext = NULL;
 
 
 OSThread_t idleThread;
@@ -102,7 +103,7 @@ void OS_threadCreate(OSThread_t* pxThread, OSThreadHandler_t pxThreadHandler,  \
 
 
 // Remove the OSThread item from the pxQueue and return it
-OSThread_t* OS_queuePopThread(queue_t* pxQueue, OSThread_t* OSThread) {
+OSThread_t* OS_queuePopThread(volatile queue_t* pxQueue, OSThread_t* OSThread) {
 
 	ASSERT_TRUE(pxQueue != NULL && OSThread != NULL);
 	ASSERT_TRUE(pxQueue->ui32NoOfItems >= 1);
@@ -122,22 +123,19 @@ OSThread_t* OS_queuePopThread(queue_t* pxQueue, OSThread_t* OSThread) {
 
 
 // Push the OSThread to the end of the pxQueue
- void OS_queuePushThread(queue_t* pxQueue, OSThread_t* OSThread) {
+ void OS_queuePushThread(volatile queue_t* pxQueue, OSThread_t* OSThread) {
 
 	 ASSERT_TRUE(pxQueue != NULL && OSThread != NULL);
 
-//	 if(pxQueue->ui32NoOfItems == 0)
-//		 pxQueue->pxTail->pxPrev = OSThread;
-
 	 pxQueue->pxTail->pxNext = OSThread;
-	 OSThread->pxNext = &pxQueue->xHead;
+	 OSThread->pxNext = (OSThread_t*) &pxQueue->xHead;
 	 OSThread->pxPrev = pxQueue->pxTail;
 	 pxQueue->pxTail = OSThread;
 
 	 pxQueue->xHead.pxPrev = pxQueue->pxTail;
 
 	 pxQueue->ui32NoOfItems++;
-}
+ }
 
 
 // Initialize the OS queues (ready queues and wait queues)
@@ -146,14 +144,16 @@ void OS_threadQueuesInit() {
 	uint32_t i;
 	for(i=0; i<PRIORITY_LEVELS; ++i) {		// Loop over ready queues
 		readyQueues[i].ui32NoOfItems = 0;
-		readyQueues[i].xHead.pxNext = &readyQueues[i].xHead;
-		readyQueues[i].xHead.pxPrev = &readyQueues[i].xHead;
-		readyQueues[i].pxTail = &readyQueues[i].xHead;
+		readyQueues[i].xHead.ui32ThreadID = 0xffffffff;	// Dummy thread
+		readyQueues[i].xHead.pxNext = (OSThread_t*) &readyQueues[i].xHead;
+		readyQueues[i].xHead.pxPrev = (OSThread_t*) &readyQueues[i].xHead;
+		readyQueues[i].pxTail = (OSThread_t*) &readyQueues[i].xHead;
 	}
 
 	xTimeOutList.ui32NoOfItems = 0;
-	xTimeOutList.xHead.pxNext = &xTimeOutList.xHead;
-	xTimeOutList.xHead.pxPrev = &xTimeOutList.xHead;
-	xTimeOutList.pxTail = &xTimeOutList.xHead;
+	xTimeOutList.xHead.ui32ThreadID = 0xffffffff;	// Dummy thread
+	xTimeOutList.xHead.pxNext = (OSThread_t*) &xTimeOutList.xHead;
+	xTimeOutList.xHead.pxPrev = (OSThread_t*) &xTimeOutList.xHead;
+	xTimeOutList.pxTail = (OSThread_t*) &xTimeOutList.xHead;
 }
 
