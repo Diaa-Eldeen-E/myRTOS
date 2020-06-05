@@ -11,9 +11,11 @@
 		.global	PendSV_Handler
 		.global	OS_SVC_delay
 		
+		.global	pxPrev
 		.global	pxRunning
 		.global pxNext
 
+pxPrevAddr:	.word	pxPrev
 pxRunningAddr:	.word	pxRunning
 pxNextAddr:		.word	pxNext
 
@@ -61,6 +63,10 @@ PendSV_Handler:
 		@ Save the current context
 		ldr	r0,	pxRunningAddr
 		ldr	r0,	[r0]
+		
+		@ pxPrev = pxRunning
+		ldr r1, pxPrevAddr
+		str r0, [r1]
 		
 		cbz r0,	LoadNext	@ if runningThread = NULL, skip to LoadNext
 	
