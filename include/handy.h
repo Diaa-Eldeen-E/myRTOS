@@ -19,13 +19,21 @@
 //A -> J AHB
 
 
-#define TREAT_WARNING_AS_ERROR	1
+#define DEBUG_
 
 
-// ASSERT
+// Assert for debugging
+#ifdef DEBUG_
+#define ASSERT_TRUE(expr)	if(!(expr))	__BKPT()
+#define	ASSERT_TRUE_WARN(expr)	if(!(expr))	__BKPT()
+
+// Assert for release
+#else
 #define ASSERT_TRUE(expr)		((expr) ? (void)0 : error_(__FILE__, __LINE__))
 #define	ASSERT_TRUE_WARN(expr)	((expr) ? (void)0 : warning_(__FILE__, __LINE__))
+#endif
 
+// Assert handlers for release
 void error_(char *pcFilename, uint32_t ui32Line);
 void warning_(char *pcFilename, uint32_t ui32Line);
 

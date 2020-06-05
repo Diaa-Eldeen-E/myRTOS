@@ -11,28 +11,19 @@
 
 
 
-// Error handler used for debugging
+// Assert error handler
 void error_(char *pcFilename, uint32_t ui32Line) {
 
 	DISABLE_IRQ;
-	__BKPT();
     while(1);
 }
 
-// Warning handler used for debugging
+// Assert Warning handler
 void warning_(char *pcFilename, uint32_t ui32Line) {
 
-	if(TREAT_WARNING_AS_ERROR) {
-
+	/* To be implemented in the application code */
 		DISABLE_IRQ;
-		__BKPT();
 		while(1);
-
-	}
-
-#if TREAT_WARNING_AS_ERROR == 0
-#warning A warning may occur, set the TREAT_WARNING_AS_ERROR flag to see it
-#endif
 
 }
 
