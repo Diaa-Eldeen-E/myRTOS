@@ -313,24 +313,11 @@ NmiSR(void)
 //*****************************************************************************
 //
 // This is the code that gets called when the processor receives a fault
-// interrupt.  This simply enters an infinite loop, preserving the system state
-// for examination by a debugger.
+// interrupt.  FaultISR passes the current stack pointer to myFaultISR
+// which contains the system state before the fault.
+// The examination is done by a debugger.
 //
 //*****************************************************************************
-static void FaultISR(void) {
-
-	__asm(
-			"tst lr, #4 \n"		\
-			"ite eq \n"			\
-			"mrseq r0, msp \n"	\
-			"mrsne r0, psp \n"	\
-			"b myFaultISR \n"	\
-			);
-
-
-	while(1);	// Enter an infinite loop.
-}
-
 static void myFaultISR(sContextStateFrame* frame) {
 
 	// Debug steps
@@ -358,11 +345,28 @@ static void myFaultISR(sContextStateFrame* frame) {
 }
 
 
+static void FaultISR(void) {
+
+	__asm(
+			"tst lr, #4 \n"		\
+			"ite eq \n"			\
+			"mrseq r0, msp \n"	\
+			"mrsne r0, psp \n"	\
+			"b myFaultISR \n"	\
+			);
+
+	// This should never be reached
+	myFaultISR((void*) 0);	// Just to remove unused function warning
+	while(1);	// Enter an infinite loop.
+}
+
+
+
 //*****************************************************************************
 //
 // This is the code that gets called when the processor receives an unexpected
-// interrupt.  This simply enters an infinite loop, preserving the system state
-// for examination by a debugger.
+// interrupt.  This simply stores the ISR number in a variable and then enters
+// an infinite loop, preserving the system state for examination by a debugger.
 //
 //*****************************************************************************
 static void IntDefaultHandler(void) {
