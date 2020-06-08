@@ -28,6 +28,13 @@ void OS_idleThread(){
 }
 
 
+void yield() {
+	DISABLE_IRQ;
+	OS_threadScheduleNext();
+	PEND_SV;
+	ENABLE_IRQ;
+}
+
 
 void OS_threadScheduleNext() {
 
@@ -136,22 +143,25 @@ OSThread_t* OS_queuePopThread(volatile queue_t* pxQueue, OSThread_t* OSThread) {
  }
 
 
-// Initialize the OS queues (ready queues and wait queues)
+// Initialize a FIFO queue
+void OS_queueInit(volatile queue_t* pxQueue) {
+
+	 pxQueue->ui32NoOfItems = 0;
+	 pxQueue->xHead.ui32ThreadID = 0xffffffff;	// Dummy thread
+	 pxQueue->xHead.pxNext = (OSThread_t*) &pxQueue->xHead;
+	 pxQueue->xHead.pxPrev = (OSThread_t*) &pxQueue->xHead;
+	 pxQueue->pxTail = (OSThread_t*) &pxQueue->xHead;
+ }
+
+
+
+// Initialize the OS queues (ready queues and wait queue)
 void OS_threadQueuesInit() {
 
 	uint32_t i;
-	for(i=0; i<PRIORITY_LEVELS; ++i) {		// Loop over ready queues
-		readyQueues[i].ui32NoOfItems = 0;
-		readyQueues[i].xHead.ui32ThreadID = 0xffffffff;	// Dummy thread
-		readyQueues[i].xHead.pxNext = (OSThread_t*) &readyQueues[i].xHead;
-		readyQueues[i].xHead.pxPrev = (OSThread_t*) &readyQueues[i].xHead;
-		readyQueues[i].pxTail = (OSThread_t*) &readyQueues[i].xHead;
-	}
+	for(i=0; i<PRIORITY_LEVELS; ++i) 		// Loop over ready queues
+		OS_queueInit(&readyQueues[i]);
 
-	xTimeOutList.ui32NoOfItems = 0;
-	xTimeOutList.xHead.ui32ThreadID = 0xffffffff;	// Dummy thread
-	xTimeOutList.xHead.pxNext = (OSThread_t*) &xTimeOutList.xHead;
-	xTimeOutList.xHead.pxPrev = (OSThread_t*) &xTimeOutList.xHead;
-	xTimeOutList.pxTail = (OSThread_t*) &xTimeOutList.xHead;
+	OS_queueInit(&xTimeOutList);
 }
 
