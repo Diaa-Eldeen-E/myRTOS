@@ -12,17 +12,14 @@
 
 
 extern volatile queue_t readyQueues[PRIORITY_LEVELS];
+extern volatile queue_t xTimeOutList;
 extern OSThread_t* volatile pxRunning;
 extern OSThread_t* volatile pxNext;
 
 extern OSThread_t idleThread;
 
-extern volatile queue_t xTimeOutList;
-
-
 volatile uint32_t ui32SysTicks = 0;
 
-uint32_t svcEXEReturn;
 
 
 
@@ -68,14 +65,13 @@ void OS_tick() {
 				OSThread_t* pxRdyThread = OS_queuePopThread(&xTimeOutList, pxIter);
 				pxIter = pxIter->pxNext;
 				OS_queuePushThread(&readyQueues[pxRdyThread->ui32Priority], pxRdyThread);
-			} else {
-				pxIter = pxIter->pxNext;
 			}
-		}
+			else
+				pxIter = pxIter->pxNext;
 
-		else {
-			ASSERT_TRUE(0);	// Error, this should never be executed
 		}
+		else
+			ASSERT_TRUE(0);	// Error, this should never be executed
 
 	}while(pxIter->ui32ThreadID != 0xffffffff);	// The queue head dummy thread
 

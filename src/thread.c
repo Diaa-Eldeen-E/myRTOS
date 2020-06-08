@@ -44,8 +44,6 @@ void OS_threadScheduleNext() {
 
 
 
-//
-	// another argument to be added
 void OS_threadCreate(OSThread_t* pxThread, OSThreadHandler_t pxThreadHandler,  \
 					uint32_t* sp, uint32_t ui32StkSize, uint32_t ui32Priorty) {
 
