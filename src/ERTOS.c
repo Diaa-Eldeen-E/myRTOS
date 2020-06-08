@@ -7,7 +7,6 @@
 
 
 #include "ERTOS.h"
-#include "thread.h"
 
 
 
@@ -22,15 +21,15 @@ volatile uint32_t ui32SysTicks = 0;
 
 
 
-
+/* This function puts the running thread in the waiting queue for
+ * a period of time equal to ui32Ticks * TICK_PERIOD_MS
+ */
 void OS_delay(uint32_t ui32Ticks) {
 
 	DISABLE_IRQ;
 
 	// Calling OS_delay from idle thread causes  error
 	ASSERT_TRUE(pxRunning->ui32ThreadID != 0);
-
-	OS_threadScheduleNext();
 
 	if(ui32Ticks > 0) {
 		// Put the thread in the time out (waiting) queue
@@ -39,11 +38,15 @@ void OS_delay(uint32_t ui32Ticks) {
 	}
 
 	// Switch context from this thread
-	PEND_SV;
+	yield();
 	ENABLE_IRQ;
 }
 
 
+/* This function is called every SysTick timer interrupt to keep track
+ * the time (ticks), monitor the time out threads and make they ready
+ *  when their time out is over
+ */
 void OS_tick() {
 
 	++ui32SysTicks;
@@ -105,7 +108,7 @@ void SysTick_Handler() {
 
 
 
-
+// This functions starts the OS
 void OS_run() {
 
 	SysTick->CTRL |= BIT0;	// Start SysTick
@@ -125,11 +128,12 @@ void OS_run() {
 
 
 
-//add status return
+// This function manages SVC commands in the OS
 void SVC_HandlerMain(uint32_t* sp) {
 
 	uint8_t ui8SVCNo = *((uint32_t*)((uint32_t) sp[6] - 2));
 
+	uint32_t ui32Status;
 
 	if(ui8SVCNo == 1) {
 		// Fetch the fifth argument passed through r12
@@ -141,6 +145,15 @@ void SVC_HandlerMain(uint32_t* sp) {
 
 	} else if(ui8SVCNo == 2) {
 		OS_delay(sp[0]);
+
+	} else if(ui8SVCNo == 10) {
+		OS_mutexCreate((mutex_t*) sp[0]);
+
+	} else if(ui8SVCNo == 11) {
+		ui32Status = OS_mutexLock((mutex_t*) sp[0]);
+
+	} else if(ui8SVCNo == 12) {
+		ui32Status = OS_mutexRelease((mutex_t*) sp[0]);
 
 	} else {
 		while(1);

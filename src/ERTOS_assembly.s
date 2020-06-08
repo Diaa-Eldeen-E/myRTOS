@@ -10,6 +10,9 @@
 		.global	SVC_Handler
 		.global	PendSV_Handler
 		.global	OS_SVC_delay
+		.global OS_SVC_mutexCreate
+		.global OS_SVC_mutexLock
+		.global OS_SVC_mutexRelease	
 		
 		.global	pxPrev
 		.global	pxRunning
@@ -33,6 +36,24 @@ OS_SVC_threadCreate:
 OS_SVC_delay:
 		svc #2
 		bx lr
+
+
+OS_SVC_mutexCreate:
+		svc #10
+		bx lr
+		
+		
+OS_SVC_mutexLock:
+		svc #11
+		bx lr
+		
+		
+OS_SVC_mutexRelease:
+		svc #12
+		bx lr
+		
+		
+
 		
 
 		
