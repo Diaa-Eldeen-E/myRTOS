@@ -169,9 +169,9 @@ int main(void) {
 	UART_initialize_polling();
 	UART_send_stringL("UART initialized successfully");
 
-//	delay_timer_init();
-//	delay_time(500);
-//	delay_timer->CTL |= BIT0;
+	delay_timer_init();
+	delay_time(500);
+	delay_timer->CTL |= BIT0;
 
 	uint32_t stack0[80];	//idle stack
 
@@ -219,12 +219,12 @@ void delay_timer_init(){
 	delay_timer->CTL |= BIT1 ;	//Enable stall
 }
 
+// Used for testing
 void TIMER6_Handler(){
 	GPIOF_DATA(P0) ^= P0;
 	delay_timer->CTL |= BIT0;
 
-//	int i=0;	//weird!!, the LED doesn't toggle without it
-
+	UART_send_stringL("Timer 6 Response");
 
 	delay_timer->ICR |= BIT0;
 
