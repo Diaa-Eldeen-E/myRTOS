@@ -44,7 +44,7 @@ uint32_t OS_mutexLock(mutex_t* pxMutex) {
 
 			// Put it in the mutex waiting list then force a context switch
 			OS_queuePushThread(&pxMutex->waitingQueue, pxRunning);
-			yield();
+			OS_yield();
 			break;
 		}
 	}

@@ -13,6 +13,7 @@
 		.global OS_SVC_mutexCreate
 		.global OS_SVC_mutexLock
 		.global OS_SVC_mutexRelease	
+		.global	OS_SVC_yield
 		
 		.global	pxPrev
 		.global	pxRunning
@@ -24,7 +25,6 @@ pxNextAddr:		.word	pxNext
 
 
 
-		
 OS_SVC_threadCreate:
 		ldr r12, [sp]	@ Pass the fifth argument through r12
 		push {lr}
@@ -35,6 +35,11 @@ OS_SVC_threadCreate:
 
 OS_SVC_delay:
 		svc #2
+		bx lr
+
+
+OS_SVC_yield:
+		svc #3
 		bx lr
 
 

@@ -22,6 +22,7 @@ extern void OS_SVC_mutexCreate(mutex_t* pxMutex);
 extern void OS_SVC_mutexLock(mutex_t* pxMutex);
 extern void OS_SVC_mutexRelease(mutex_t* pxMutex);
 extern void OS_SVC_delay();
+extern void OS_SVC_yield();
 
 
 void OS_delay(uint32_t ui32Ticks);

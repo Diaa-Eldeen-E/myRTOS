@@ -154,6 +154,20 @@ void UART_Msg8() {
 }
 
 
+// Thread 9 - One shot
+uint32_t stack9[80];
+OSThread_t xUART_Msg9;
+void UART_Msg9() {
+
+		OS_SVC_mutexLock(&xMutUART);
+		UART_send_stringL("Timer 6 Response");
+		OS_SVC_mutexRelease(&xMutUART);
+
+		OS_SVC_yield();
+}
+
+
+
 void OS_test(uint32_t pri[]) {
 
 	OS_SVC_threadCreate(&xblinky1, &blinky1, stack1, sizeof(stack1), pri[0]);
@@ -230,11 +244,13 @@ void TIMER6_Handler(){
 	delay_timer->CTL |= BIT0;
 
 	// A solution for using mutex in interrupt but it's not guaranteed
-	if(__LDREXW(&xMutUART.val))
-		UART_send_stringL("Timer 6 Response");
+//	if(__LDREXW(&xMutUART.val))
+//		UART_send_stringL("Timer 6 Response");
+//
+//	__CLREX();	// Clear exclusion
 
-	__CLREX();	// Clear exclusion
 
+	OS_SVC_threadCreate(&xUART_Msg9, &UART_Msg9, stack9, sizeof(stack9), 1);
 	// Try the following solution
 	// Create a new thread containing the UART message to send
 	// Give it a high priority

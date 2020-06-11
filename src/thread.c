@@ -28,7 +28,7 @@ void OS_idleThread(){
 }
 
 
-void yield() {
+void OS_yield() {
 	DISABLE_IRQ;
 	OS_threadScheduleNext();
 	PEND_SV;

@@ -38,7 +38,7 @@ void OS_delay(uint32_t ui32Ticks) {
 	}
 
 	// Switch context from this thread
-	yield();
+	OS_yield();
 	ENABLE_IRQ;
 }
 
@@ -147,7 +147,10 @@ void SVC_HandlerMain(uint32_t* sp) {
 	} else if(ui8SVCNo == 2) {
 		OS_delay(sp[0]);
 
-	} else if(ui8SVCNo == 10) {
+	} else if(ui8SVCNo == 3) {
+		OS_yield();
+
+	}  else if(ui8SVCNo == 10) {
 		OS_mutexCreate((mutex_t*) sp[0]);
 
 	} else if(ui8SVCNo == 11) {
