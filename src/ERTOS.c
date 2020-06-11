@@ -131,6 +131,7 @@ void OS_run() {
 // This function manages SVC commands in the OS
 void SVC_HandlerMain(uint32_t* sp) {
 
+	// Retrieve the SVCall number from the program counter
 	uint8_t ui8SVCNo = *((uint32_t*)((uint32_t) sp[6] - 2));
 
 	uint32_t ui32Status;
@@ -159,6 +160,7 @@ void SVC_HandlerMain(uint32_t* sp) {
 		while(1);
 	}
 
+	sp[0] = ui32Status;	// return value (r0)
 }
 
 
