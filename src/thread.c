@@ -98,7 +98,9 @@ void OS_threadCreate(OSThread_t* pxThread, OSThreadHandler_t pxThreadHandler,  \
 	pxThread->ui32Priority = ui32Priorty;
 	pxThread->ui32TimeOut = 0;
 
+	__disable_irq();
 	OS_queuePushThread(&readyQueues[ui32Priorty], pxThread);
+	__enable_irq();
 }
 
 

@@ -64,10 +64,13 @@ void OS_tick() {
 			pxIter->ui32TimeOut--;
 
 			if(pxIter->ui32TimeOut == 0) {
+				__disable_irq();
+
 				//  Move the thread from the waiting list to the ready list
 				OSThread_t* pxRdyThread = OS_queuePopThread(&xTimeOutList, pxIter);
 				pxIter = pxIter->pxNext;
 				OS_queuePushThread(&readyQueues[pxRdyThread->ui32Priority], pxRdyThread);
+				__enable_irq();
 			}
 			else
 				pxIter = pxIter->pxNext;
