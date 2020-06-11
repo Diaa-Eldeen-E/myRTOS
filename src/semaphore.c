@@ -65,6 +65,11 @@ uint32_t OS_semaphoreGive(semaphore_t* pxSemaphore) {
 		OS_queuePushThread(&readyQueues[pxThread->ui32Priority], \
 				OS_queuePopThread(&pxSemaphore->waitingQueue, pxThread));
 
+		// If the unblocked thread has a higher priority than the running one, yield
+		if(pxThread->ui32Priority < pxRunning->ui32Priority) {
+			OS_queuePushThread(&readyQueues[pxRunning->ui32Priority], pxRunning);
+			OS_yield();
+		}
 	}
 	// Give the semaphore (increment it)
 	else {

@@ -62,6 +62,11 @@ uint32_t OS_mutexRelease(mutex_t* pxMutex) {
 		OS_queuePushThread(&readyQueues[pxThread->ui32Priority], \
 				OS_queuePopThread(&pxMutex->waitingQueue, pxThread));
 
+		// If the unblocked thread has a higher priority than the running one, yield
+		if(pxThread->ui32Priority < pxRunning->ui32Priority) {
+			OS_queuePushThread(&readyQueues[pxRunning->ui32Priority], pxRunning);
+			OS_yield();
+		}
 	}
 	// Release the mutex
 	else {
