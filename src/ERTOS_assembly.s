@@ -10,10 +10,14 @@
 		.global	SVC_Handler
 		.global	PendSV_Handler
 		.global	OS_SVC_delay
+		.global	OS_SVC_yield
 		.global OS_SVC_mutexCreate
 		.global OS_SVC_mutexLock
 		.global OS_SVC_mutexRelease	
-		.global	OS_SVC_yield
+		.global OS_SVC_semaphoreCreate
+		.global OS_SVC_semaphoreTake
+		.global OS_SVC_semaphoreGive	
+		
 		
 		.global	pxPrev
 		.global	pxRunning
@@ -55,6 +59,21 @@ OS_SVC_mutexLock:
 		
 OS_SVC_mutexRelease:
 		svc #12
+		bx lr
+		
+		
+OS_SVC_semaphoreCreate:
+		svc #13
+		bx lr
+		
+		
+OS_SVC_semaphoreTake:
+		svc #14
+		bx lr
+		
+		
+OS_SVC_semaphoreGive:
+		svc #15
 		bx lr
 		
 		

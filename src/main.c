@@ -30,9 +30,9 @@ void blinky1() {
 
 	while(1) {
 
-		OS_SVC_mutexLock(&xMutUART);
+		OS_SVC_semaphoreTake(&xMutUART);
 		UART_send_stringL("Hello main 1");
-		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_semaphoreGive(&xMutUART);
 		LED1_ON
 		OS_SVC_delay(500);
 		LED1_OFF
@@ -46,9 +46,9 @@ OSThread_t xblinky2;
 void blinky2() {
 
 	while(1) {
-		OS_SVC_mutexLock(&xMutUART);
+		OS_SVC_semaphoreTake(&xMutUART);
 		UART_send_stringL("Hello main 2");
-		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_semaphoreGive(&xMutUART);
 		LED2_ON
 		OS_SVC_delay(1000);
 		LED2_OFF
@@ -63,9 +63,9 @@ void blinky3() {
 
 	while(1) {
 
-		OS_SVC_mutexLock(&xMutUART);
+		OS_SVC_semaphoreTake(&xMutUART);
 		UART_send_stringL("Hello main 3");
-		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_semaphoreGive(&xMutUART);
 
 		LED3_ON
 		OS_SVC_delay(250);
@@ -81,9 +81,9 @@ void UART_Msg() {
 
 	while(1) {
 
-		OS_SVC_mutexLock(&xMutUART);
+		OS_SVC_semaphoreTake(&xMutUART);
 		UART_send_stringL("Hello main 4");
-		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_semaphoreGive(&xMutUART);
 
 		OS_SVC_delay(500);
 	}
@@ -97,9 +97,9 @@ void UART_Msg5() {
 
 	while(1) {
 
-		OS_SVC_mutexLock(&xMutUART);
+		OS_SVC_semaphoreTake(&xMutUART);
 		UART_send_stringL("Hello main 5");
-		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_semaphoreGive(&xMutUART);
 
 		OS_SVC_delay(140);
 	}
@@ -113,9 +113,9 @@ void UART_Msg6() {
 
 	while(1) {
 
-		OS_SVC_mutexLock(&xMutUART);
+		OS_SVC_semaphoreTake(&xMutUART);
 		UART_send_stringL("Hello main 6");
-		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_semaphoreGive(&xMutUART);
 
 		OS_SVC_delay(290);
 	}
@@ -128,9 +128,9 @@ void UART_Msg7() {
 
 	while(1) {
 
-		OS_SVC_mutexLock(&xMutUART);
+		OS_SVC_semaphoreTake(&xMutUART);
 		UART_send_stringL("Hello main 7");
-		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_semaphoreGive(&xMutUART);
 
 		OS_SVC_delay(370);
 	}
@@ -143,9 +143,9 @@ void UART_Msg8() {
 
 	while(1) {
 
-		OS_SVC_mutexLock(&xMutUART);
+		OS_SVC_semaphoreTake(&xMutUART);
 		UART_send_stringL("Hello main 8");
-		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_semaphoreGive(&xMutUART);
 
 		uint32_t i=0;
 		for(i=0; i<1000000; ++i);
@@ -159,9 +159,9 @@ uint32_t stack9[80];
 OSThread_t xUART_Msg9;
 void UART_Msg9() {
 
-		OS_SVC_mutexLock(&xMutUART);
+		OS_SVC_semaphoreTake(&xMutUART);
 		UART_send_stringL("Timer 6 Response");
-		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_semaphoreGive(&xMutUART);
 
 		OS_SVC_yield();
 }
@@ -213,7 +213,7 @@ int main(void) {
 
 	uint32_t pri[] = {1, 1, 2, 2, 3, 3, 4, 5};
 
-	OS_SVC_mutexCreate(&xMutUART);
+	OS_SVC_semaphoreCreate(&xMutUART, 1);
 
 	OS_test(pri);
 
@@ -250,12 +250,8 @@ void TIMER6_Handler(){
 //	__CLREX();	// Clear exclusion
 
 
+	// A better solution for using the UART inside an ISR
 	OS_SVC_threadCreate(&xUART_Msg9, &UART_Msg9, stack9, sizeof(stack9), 1);
-	// Try the following solution
-	// Create a new thread containing the UART message to send
-	// Give it a high priority
-	// The thread will destroy it self when it's done
-
 
 	delay_timer->ICR |= BIT0;
 

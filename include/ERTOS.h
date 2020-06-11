@@ -14,10 +14,14 @@
 #include "ERTOS_config.h"
 #include "thread.h"
 #include "mutex.h"
+#include "semaphore.h"
 
 #include "handy.h"
 
 
+extern void OS_SVC_semaphoreCreate(mutex_t* pxMutex, uint32_t ui32InitialValue);
+extern void OS_SVC_semaphoreTake(mutex_t* pxMutex);
+extern void OS_SVC_semaphoreGive(mutex_t* pxMutex);
 extern void OS_SVC_mutexCreate(mutex_t* pxMutex);
 extern void OS_SVC_mutexLock(mutex_t* pxMutex);
 extern void OS_SVC_mutexRelease(mutex_t* pxMutex);

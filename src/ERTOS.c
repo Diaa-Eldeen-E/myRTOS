@@ -159,7 +159,16 @@ void SVC_HandlerMain(uint32_t* sp) {
 	} else if(ui8SVCNo == 12) {
 		ui32Status = OS_mutexRelease((mutex_t*) sp[0]);
 
-	} else {
+	} else if(ui8SVCNo == 13) {
+		OS_semaphoreCreate((semaphore_t*) sp[0], sp[1]);
+
+	} else if(ui8SVCNo == 14) {
+		ui32Status = OS_semaphoreTake((semaphore_t*) sp[0]);
+
+	} else if(ui8SVCNo == 15) {
+		ui32Status = OS_semaphoreGive((semaphore_t*) sp[0]);
+
+	}else {
 		while(1);
 	}
 
