@@ -45,7 +45,7 @@ uint32_t OS_mutexLock(mutex_t* pxMutex) {
 			// Put it in the mutex waiting list then force a context switch
 			OS_queuePushThread(&pxMutex->waitingQueue, pxRunning);
 			OS_yield();
-			break;
+			return 2;	// The function repeats the mutex lock SVCall
 		}
 	}
 
@@ -55,6 +55,23 @@ uint32_t OS_mutexLock(mutex_t* pxMutex) {
 uint32_t OS_mutexRelease(mutex_t* pxMutex) {
 
 	ASSERT_TRUE(pxMutex != NULL);
+
+
+	// Use mutual exclusion pair instructions to release it
+	while(1) {
+
+		ASSERT_TRUE(!(__LDREXW(&pxMutex->val)));	// Must read 0 (locked)
+
+		if( !(__STREXW(1, &pxMutex->val)) ) {	// Release success
+			__DMB();
+			break;
+		}
+		else {			// Release not success
+			// Try releasing again
+		}
+
+	}
+
 
 	// If the mutex waiting list is not empty, make the front thread ready
 	if(pxMutex->waitingQueue.ui32NoOfItems) {
@@ -68,24 +85,6 @@ uint32_t OS_mutexRelease(mutex_t* pxMutex) {
 			OS_yield();
 		}
 	}
-	// Release the mutex
-	else {
-		// Use mutual exclusion pair instructions to release it
-		while(1) {
-
-			ASSERT_TRUE(!(__LDREXW(&pxMutex->val)));	// Must read 0 (locked)
-
-			if( !(__STREXW(1, &pxMutex->val)) ) {	// Release success
-				__DMB();
-				break;
-			}
-			else {			// Release not success
-				// Try releasing again
-			}
-
-		}
-	}
-
 
 	return 0;	// Success
 }

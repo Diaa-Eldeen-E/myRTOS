@@ -48,7 +48,7 @@ uint32_t OS_semaphoreTake(semaphore_t* pxSemaphore) {
 			// Put it in the semaphore waiting list then force a context switch
 			OS_queuePushThread(&pxSemaphore->waitingQueue, pxRunning);
 			OS_yield();
-			break;
+			return 2;	// The function repeats the semaphore take SVCall
 		}
 	}
 
@@ -58,6 +58,21 @@ uint32_t OS_semaphoreTake(semaphore_t* pxSemaphore) {
 uint32_t OS_semaphoreGive(semaphore_t* pxSemaphore) {
 
 	ASSERT_TRUE(pxSemaphore != NULL);
+
+	// Use mutual exclusion pair instructions to increment the semaphore value
+	while(1) {
+
+		uint32_t uiSemVal = __LDREXW(&pxSemaphore->val);
+
+		if( !(__STREXW(uiSemVal + 1, &pxSemaphore->val)) ) {	// Give success
+			__DMB();
+			break;
+		}
+		else {			// Give not success
+			// Try Giving again
+		}
+
+	}
 
 	// If the semaphore waiting list is not empty, make the front thread ready
 	if(pxSemaphore->waitingQueue.ui32NoOfItems) {
@@ -71,24 +86,7 @@ uint32_t OS_semaphoreGive(semaphore_t* pxSemaphore) {
 			OS_yield();
 		}
 	}
-	// Give the semaphore (increment it)
-	else {
 
-		// Use mutual exclusion pair instructions to release it
-		while(1) {
-
-			uint32_t uiSemVal = __LDREXW(&pxSemaphore->val);
-
-			if( !(__STREXW(uiSemVal + 1, &pxSemaphore->val)) ) {	// Give success
-				__DMB();
-				break;
-			}
-			else {			// Give not success
-				// Try Giving again
-			}
-
-		}
-	}
 
 	return 0;	// Success
 }
