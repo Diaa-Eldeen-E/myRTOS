@@ -16,7 +16,10 @@
 		.global OS_SVC_mutexRelease	
 		.global OS_SVC_semaphoreCreate
 		.global OS_SVC_semaphoreTake
-		.global OS_SVC_semaphoreGive	
+		.global OS_SVC_semaphoreGive
+		.global OS_SVC_mailboxCreate
+		.global OS_SVC_mailboxWrite
+		.global OS_SVC_mailboxRead		
 		
 		
 		.global	pxPrev
@@ -77,10 +80,22 @@ OS_SVC_semaphoreGive:
 		bx lr
 		
 		
-
+OS_SVC_mailboxCreate:
+		svc #16
+		bx lr
+		
+		
+OS_SVC_mailboxWrite:
+		svc #17
+		bx lr
+		
+		
+OS_SVC_mailboxRead:
+		svc #18
+		bx lr
+		
 		
 
-		
 
 @ It causes error "Invalid state (arm state)" when we don't use the following line
 @ It sets the symbol name as a function symbol in the symbol entry table
