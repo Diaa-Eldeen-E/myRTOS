@@ -10,6 +10,7 @@
 #include "ERTOS.h"
 
 
+
 uint32_t F_SysClk = 80000000UL;
 
 
@@ -21,7 +22,8 @@ void delay_timer_init();
 
 
 mutex_t xMutUART;
-
+mailbox_t xMailbox;
+uint32_t pMailBuffer[16];
 
 // Thread 1
 uint32_t stack1[80];
@@ -30,9 +32,12 @@ void blinky1() {
 
 	while(1) {
 
-		OS_SVC_semaphoreTake(&xMutUART);
+		uint32_t msg = 20;
+
+		OS_SVC_mutexLock(&xMutUART);
 		UART_send_stringL("Hello main 1");
-		OS_SVC_semaphoreGive(&xMutUART);
+		OS_SVC_mutexRelease(&xMutUART);
+		OS_SVC_mailboxWrite(&xMailbox, &msg);
 		LED1_ON
 		OS_SVC_delay(500);
 		LED1_OFF
@@ -46,9 +51,14 @@ OSThread_t xblinky2;
 void blinky2() {
 
 	while(1) {
-		OS_SVC_semaphoreTake(&xMutUART);
+
+		uint32_t pMsg;
+		OS_SVC_mutexLock(&xMutUART);
 		UART_send_stringL("Hello main 2");
-		OS_SVC_semaphoreGive(&xMutUART);
+		OS_SVC_mailboxRead(&xMailbox, &pMsg);
+		UART_send_string("Received this message: ");
+		UART_send_intL(pMsg);
+		OS_SVC_mutexRelease(&xMutUART);
 		LED2_ON
 		OS_SVC_delay(1000);
 		LED2_OFF
@@ -63,9 +73,9 @@ void blinky3() {
 
 	while(1) {
 
-		OS_SVC_semaphoreTake(&xMutUART);
+		OS_SVC_mutexLock(&xMutUART);
 		UART_send_stringL("Hello main 3");
-		OS_SVC_semaphoreGive(&xMutUART);
+		OS_SVC_mutexRelease(&xMutUART);
 
 		LED3_ON
 		OS_SVC_delay(250);
@@ -81,9 +91,9 @@ void UART_Msg() {
 
 	while(1) {
 
-		OS_SVC_semaphoreTake(&xMutUART);
+		OS_SVC_mutexLock(&xMutUART);
 		UART_send_stringL("Hello main 4");
-		OS_SVC_semaphoreGive(&xMutUART);
+		OS_SVC_mutexRelease(&xMutUART);
 
 		OS_SVC_delay(500);
 	}
@@ -97,9 +107,9 @@ void UART_Msg5() {
 
 	while(1) {
 
-		OS_SVC_semaphoreTake(&xMutUART);
+		OS_SVC_mutexLock(&xMutUART);
 		UART_send_stringL("Hello main 5");
-		OS_SVC_semaphoreGive(&xMutUART);
+		OS_SVC_mutexRelease(&xMutUART);
 
 		OS_SVC_delay(140);
 	}
@@ -113,9 +123,9 @@ void UART_Msg6() {
 
 	while(1) {
 
-		OS_SVC_semaphoreTake(&xMutUART);
+		OS_SVC_mutexLock(&xMutUART);
 		UART_send_stringL("Hello main 6");
-		OS_SVC_semaphoreGive(&xMutUART);
+		OS_SVC_mutexRelease(&xMutUART);
 
 		OS_SVC_delay(290);
 	}
@@ -128,9 +138,9 @@ void UART_Msg7() {
 
 	while(1) {
 
-		OS_SVC_semaphoreTake(&xMutUART);
+		OS_SVC_mutexLock(&xMutUART);
 		UART_send_stringL("Hello main 7");
-		OS_SVC_semaphoreGive(&xMutUART);
+		OS_SVC_mutexRelease(&xMutUART);
 
 		OS_SVC_delay(370);
 	}
@@ -143,9 +153,9 @@ void UART_Msg8() {
 
 	while(1) {
 
-		OS_SVC_semaphoreTake(&xMutUART);
+		OS_SVC_mutexLock(&xMutUART);
 		UART_send_stringL("Hello main 8");
-		OS_SVC_semaphoreGive(&xMutUART);
+		OS_SVC_mutexRelease(&xMutUART);
 
 		uint32_t i=0;
 		for(i=0; i<1000000; ++i);
@@ -159,9 +169,9 @@ uint32_t stack9[80];
 OSThread_t xUART_Msg9;
 void UART_Msg9() {
 
-		OS_SVC_semaphoreTake(&xMutUART);
+		OS_SVC_mutexLock(&xMutUART);
 		UART_send_stringL("Timer 6 Response");
-		OS_SVC_semaphoreGive(&xMutUART);
+		OS_SVC_mutexRelease(&xMutUART);
 
 		OS_SVC_yield();
 }
@@ -213,7 +223,8 @@ int main(void) {
 
 	uint32_t pri[] = {1, 1, 2, 2, 3, 3, 4, 5};
 
-	OS_SVC_semaphoreCreate(&xMutUART, 1);
+	OS_SVC_mutexCreate(&xMutUART);
+	OS_SVC_mailboxCreate(&xMailbox, pMailBuffer, sizeof(pMailBuffer), sizeof(pMailBuffer[0]));
 
 	OS_test(pri);
 

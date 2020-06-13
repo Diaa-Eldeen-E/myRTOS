@@ -98,9 +98,7 @@ void OS_threadCreate(OSThread_t* pxThread, OSThreadHandler_t pxThreadHandler,  \
 	pxThread->ui32Priority = ui32Priorty;
 	pxThread->ui32TimeOut = 0;
 
-	__disable_irq();
 	OS_queuePushThread(&readyQueues[ui32Priorty], pxThread);
-	__enable_irq();
 }
 
 
@@ -115,12 +113,16 @@ OSThread_t* OS_queuePopThread(volatile queue_t* pxQueue, OSThread_t* OSThread) {
 	ASSERT_TRUE(pxQueue != NULL && OSThread != NULL);
 	ASSERT_TRUE(pxQueue->ui32NoOfItems >= 1);
 
-	OSThread->pxNext->pxPrev = OSThread->pxPrev;
-	OSThread->pxPrev->pxNext = OSThread->pxNext;
 
 	// If the tail thread is removed, update the tail to point the new last one
-	if(pxQueue->pxTail == OSThread)
+	if(pxQueue->pxTail == OSThread) {
 		pxQueue->pxTail = OSThread->pxPrev;
+		pxQueue->pxTail->pxNext = NULL;
+	}
+	else {
+		OSThread->pxNext->pxPrev = OSThread->pxPrev;
+		OSThread->pxPrev->pxNext = OSThread->pxNext;
+	}
 
 	pxQueue->ui32NoOfItems--;
 
@@ -135,11 +137,11 @@ OSThread_t* OS_queuePopThread(volatile queue_t* pxQueue, OSThread_t* OSThread) {
 	 ASSERT_TRUE(pxQueue != NULL && OSThread != NULL);
 
 	 pxQueue->pxTail->pxNext = OSThread;
-	 OSThread->pxNext = (OSThread_t*) &pxQueue->xHead;
+	 OSThread->pxNext = NULL; //(OSThread_t*) &pxQueue->xHead;
 	 OSThread->pxPrev = pxQueue->pxTail;
 	 pxQueue->pxTail = OSThread;
 
-	 pxQueue->xHead.pxPrev = pxQueue->pxTail;
+//	 pxQueue->xHead.pxPrev = pxQueue->pxTail;
 
 	 pxQueue->ui32NoOfItems++;
  }
@@ -151,7 +153,7 @@ void OS_queueInit(volatile queue_t* pxQueue) {
 	 pxQueue->ui32NoOfItems = 0;
 	 pxQueue->xHead.ui32ThreadID = 0xffffffff;	// Dummy thread
 	 pxQueue->xHead.pxNext = (OSThread_t*) &pxQueue->xHead;
-	 pxQueue->xHead.pxPrev = (OSThread_t*) &pxQueue->xHead;
+	 pxQueue->xHead.pxPrev = NULL; //(OSThread_t*) &pxQueue->xHead;
 	 pxQueue->pxTail = (OSThread_t*) &pxQueue->xHead;
  }
 

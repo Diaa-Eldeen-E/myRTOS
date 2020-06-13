@@ -64,13 +64,11 @@ void OS_tick() {
 			pxIter->ui32TimeOut--;
 
 			if(pxIter->ui32TimeOut == 0) {
-				__disable_irq();
 
 				//  Move the thread from the waiting list to the ready list
-				OSThread_t* pxRdyThread = OS_queuePopThread(&xTimeOutList, pxIter);
+				OSThread_t* pxRdyThread = pxIter;
 				pxIter = pxIter->pxNext;
-				OS_queuePushThread(&readyQueues[pxRdyThread->ui32Priority], pxRdyThread);
-				__enable_irq();
+				OS_queuePushThread(&readyQueues[pxRdyThread->ui32Priority], OS_queuePopThread(&xTimeOutList, pxRdyThread));
 			}
 			else
 				pxIter = pxIter->pxNext;
@@ -79,7 +77,7 @@ void OS_tick() {
 		else
 			ASSERT_TRUE(0);	// Error, this should never be executed
 
-	}while(pxIter->ui32ThreadID != 0xffffffff);	// The queue head dummy thread
+	}while(pxIter != NULL /*->ui32ThreadID != 0xffffffff*/);	// The queue head dummy thread
 
 }
 
@@ -90,6 +88,7 @@ void SysTick_Handler() {
 
 
 	SysTick->CTRL |= 1;		// Clear the flag and Start counting again
+	DISABLE_IRQ;
 	OS_tick();
 
 	/* Context switch to the next ready tread when the current thread time slot ends
@@ -97,7 +96,7 @@ void SysTick_Handler() {
 	 */
 	if(ui32SysTicks % TIME_SLOT == 0 && (!(SCB->ICSR & BIT28))) {
 
-		DISABLE_IRQ;
+
 
 		// Insert the last running thread back into the ready list before switching
 		if(pxRunning != NULL)
@@ -105,8 +104,9 @@ void SysTick_Handler() {
 
 		OS_threadScheduleNext();
 		PEND_SV;
-		ENABLE_IRQ;
+
 	}
+	ENABLE_IRQ;
 }
 
 
@@ -116,6 +116,7 @@ void OS_run() {
 
 	SysTick->CTRL |= BIT0;	// Start SysTick
 
+	__enable_irq();
 	__set_BASEPRI(0);	// Enable all interrupts
 
 	// Change thread mode to unprivileged and use PSP stack
@@ -171,11 +172,28 @@ void SVC_HandlerMain(uint32_t* sp) {
 	} else if(ui8SVCNo == 15) {
 		ui32Status = OS_semaphoreGive((semaphore_t*) sp[0]);
 
+	} else if(ui8SVCNo == 16) {
+		OS_mailboxCreate((mailbox_t*) sp[0], (uint32_t*) sp[1], sp[2], sp[3]);
+
+	} else if(ui8SVCNo == 17) {
+		ui32Status = OS_mailboxWrite((mailbox_t*) sp[0], (uint32_t*) sp[1]);
+
+	} else if(ui8SVCNo == 18) {
+		ui32Status = OS_mailboxRead((mailbox_t*) sp[0], (uint32_t*) sp[1]);
+
 	}else {
 		while(1);
 	}
 
-	sp[0] = ui32Status;	// return value (r0)
+	// Calls that return a status parameter
+	if( ui8SVCNo == 11 || ui8SVCNo == 14 || ui8SVCNo == 17 || ui8SVCNo == 18) {
+
+		if(ui32Status == 2) 	// The thread was blocked, repeat again
+			sp[6] = sp[6] - 2;
+		else
+			sp[0] = ui32Status;	// return value (r0)
+	}
+
 }
 
 

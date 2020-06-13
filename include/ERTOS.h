@@ -15,16 +15,25 @@
 #include "thread.h"
 #include "mutex.h"
 #include "semaphore.h"
+#include "mailbox.h"
 
 #include "handy.h"
 
 
+
+extern void OS_SVC_mailboxCreate(mailbox_t* pxMailbox, uint32_t* pStart,  \
+		uint32_t uiSize, uint32_t uiMsgSize);
+extern void OS_SVC_mailboxWrite(mailbox_t* pxMailbox, uint32_t* pMsg);
+extern void OS_SVC_mailboxRead(mailbox_t* pxMailbox, uint32_t* pMsg);
+
 extern void OS_SVC_semaphoreCreate(mutex_t* pxMutex, uint32_t ui32InitialValue);
 extern void OS_SVC_semaphoreTake(mutex_t* pxMutex);
 extern void OS_SVC_semaphoreGive(mutex_t* pxMutex);
+
 extern void OS_SVC_mutexCreate(mutex_t* pxMutex);
 extern void OS_SVC_mutexLock(mutex_t* pxMutex);
 extern void OS_SVC_mutexRelease(mutex_t* pxMutex);
+
 extern void OS_SVC_delay();
 extern void OS_SVC_yield();
 
