@@ -40,6 +40,7 @@ set(SOURCES
 	src/ERTOS_assembly.s
 	src/mutex.c
 	src/semaphore.c
+	src/mailbox.c
 	tm4c1294ncpdt_startup_ccs_gcc.c
 	)
 	
