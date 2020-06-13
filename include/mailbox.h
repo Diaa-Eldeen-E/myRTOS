@@ -8,6 +8,7 @@
 #ifndef INCLUDE_MAILBOX_H_
 #define INCLUDE_MAILBOX_H_
 
+#include <string.h>
 
 #include "thread.h"
 
