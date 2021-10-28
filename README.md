@@ -1,5 +1,5 @@
 
-[![Build Status](https://travis-ci.com/diaa3007/myRTOS.svg?branch=master)](https://travis-ci.com/diaa3007/myRTOS/)
+[![Build Status](https://api.travis-ci.com/Diaa-Eldeen-E/myRTOS.svg?branch=master)](https://app.travis-ci.com/github/Diaa-Eldeen-E/myRTOS/)
 
 # This is a real time operating system implementation
 ## A practical project for learning the RTOS from the inside
@@ -8,17 +8,18 @@
 - Priority preemptive multi-level queue with round robin scheduling algorithm.
 - Context switching supports many modes of operation.
 - Uses supervisor system calls to isolate the OS layer.
-- Two modes of operation: thread mode and kernel mode.
-	- Separate stack pointer for each mode.
-	- Kernel mode has privileged access.
-	- Thread mode has un-privileged access.
-	- OS routines run in kernel mode.
-	- User threads run in thread mode.
+- Two modes of operation with separate stack pointers for each mode:
+	- Kernel mode:
+		- Privileged access.
+		- OS routines run in kernel mode.
+	- Thread mode:
+		- Non-Privileged access.
+		- User routines run in thread mode.
 - Supports mutex and semaphore synchronization.
 - Supports mailbox for threads communication.
 - A config header file to control the RTOS e.g. FPU_ENABLED, PRIORTY_LEVELS and Tick period.
 - Provides an OS_delay function for periodic routines.
-- Depends totaly on static allocation i.e. requires 0 heap space.
+- Depends on static allocation.
 - Provides an idle task hook.
 
 
